@@ -76,6 +76,8 @@
   .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;min-height:16px}
   .chip{background:#eef2ef;border:1px solid var(--line);border-radius:999px;padding:4px 11px;font-size:13px;cursor:grab;user-select:none}
   .chip.rider{background:var(--accent-soft)}
+  .chip.pair{background:#e8eef4;border-color:#c9d7e4;color:#3f5f7d;font-weight:600}
+  #poolPairs:empty::after{content:"Přidej jezdci stálé koně na jeho kartě.";font-size:11.5px;color:var(--muted);font-weight:400}
   .chip[draggable=true]:active{cursor:grabbing}
   .pool .hint{font-size:11.5px;color:var(--muted);margin:2px 0 0;line-height:1.45}
 
@@ -158,11 +160,13 @@
     </div>
     <div class="layout">
       <aside class="pool">
+        <h4>Dvojice (jezdec + kůň)</h4>
+        <div class="chips" id="poolPairs"></div>
         <h4>Koně</h4>
         <div class="chips" id="poolHorses"></div>
         <h4>Jezdci</h4>
         <div class="chips" id="poolRiders"></div>
-        <p class="hint">Přetáhni koně do lekce. Jezdce přetáhni na koně v lekci, nebo klikni na koně a vyber.</p>
+        <p class="hint">Přetáhni <strong>dvojici</strong> nebo <strong>koně</strong> do lekce. Jezdce přetáhni na koně v lekci, nebo na koně klikni a vyber. Dvojice se berou ze stálých koní na kartě jezdce.</p>
       </aside>
       <div class="board" id="board"></div>
     </div>
@@ -268,18 +272,18 @@ function demoData(){
   slot(6,"09:00","10:00","souk","",[]);
   slot(6,"10:00","11:00","skup","",["Sikky","Klára","Šiml","Ryzka","Sargas","Charmed"]);
   const riders=[
-    {id:"r1",name:"Adéla Nováková",level:"zacatecnik",pref:[],contact:"721 111 222"},
+    {id:"r1",name:"Adéla Nováková",level:"zacatecnik",pref:["h1"],contact:"721 111 222"},
     {id:"r2",name:"Bára Kučerová",level:"pokrocily",pref:["h7","h8"],contact:"602 333 444"},
     {id:"r3",name:"Cyril Dvořák",level:"zavodnik",pref:["h9"],contact:"777 555 666"},
-    {id:"r4",name:"Dana Horáková",level:"zacatecnik",pref:[],contact:"605 777 888"},
+    {id:"r4",name:"Dana Horáková",level:"zacatecnik",pref:["h3"],contact:"605 777 888"},
     {id:"r5",name:"Eva Marešová",level:"pokrocily",pref:["h10"],contact:"720 999 000"},
   ];
   return {horses:H,slots:SL,assignments:AS,riders};
 }
 
 let S=load();
-function load(){ try{const raw=localStorage.getItem("jezdecka_skola_v5"); if(raw) return JSON.parse(raw);}catch(e){} return demoData(); }
-function save(){ try{localStorage.setItem("jezdecka_skola_v5",JSON.stringify(S));}catch(e){} }
+function load(){ try{const raw=localStorage.getItem("jezdecka_skola_v6"); if(raw) return JSON.parse(raw);}catch(e){} return demoData(); }
+function save(){ try{localStorage.setItem("jezdecka_skola_v6",JSON.stringify(S));}catch(e){} }
 function uid(p){ return p+Math.random().toString(36).slice(2,8); }
 const byId=(arr,id)=>arr.find(x=>x.id===id);
 const riderName=id=>(byId(S.riders,id)||{}).name||"?";
@@ -343,7 +347,7 @@ function editRider(id){
     <div class="field"><label>Jméno</label><input type="text" id="f_name" value="${esc(r.name)}"></div>
     <div class="field"><label>Úroveň</label><select id="f_level">${Object.entries(LEVELS).map(([k,v])=>`<option value="${k}" ${r.level===k?"selected":""}>${v}</option>`).join("")}</select></div>
     <div class="field"><label>Kontakt</label><input type="text" id="f_contact" value="${esc(r.contact||"")}"></div>
-    <div class="field"><label>Preferovaní koně (nápověda)</label><div class="checks">${opts}</div></div>
+    <div class="field"><label>Stálí koně / dvojice — objeví se v panelu rozvrhu jako přetahovatelná dvojice</label><div class="checks">${opts}</div></div>
   `,{
     onSave(){
       const name=document.getElementById("f_name").value.trim(); if(!name) return alert("Zadej jméno");
@@ -411,7 +415,7 @@ function editHorse(id){
 }
 
 /* ---------- SCHEDULE (day board) ---------- */
-let dragKind=null,dragId=null;
+let dragKind=null,dragId=null,dragPair=null;
 function renderSched(){
   const board=document.getElementById("board"); board.innerHTML="";
   const todayIdx=(new Date().getDay()+6)%7;
@@ -464,12 +468,24 @@ function renderLesson(sl){
     allIssues.forEach(([k,txt])=>{ const l=document.createElement("div"); l.className=k; l.textContent=(k==="b"?"⛔ ":"⚠ ")+txt; box.appendChild(l); });
     el.appendChild(box);
   }
-  el.ondragover=e=>{ if(dragKind==="horse"){ e.preventDefault(); el.classList.add("drop"); } };
+  el.ondragover=e=>{ if(dragKind==="horse"||dragKind==="pair"){ e.preventDefault(); el.classList.add("drop"); } };
   el.ondragleave=()=>el.classList.remove("drop");
-  el.ondrop=e=>{ el.classList.remove("drop"); if(dragKind!=="horse")return; e.preventDefault();
-    if(S.assignments.some(a=>a.slot===sl.id&&a.horse===dragId))return;
-    if(rows.length>=sl.cap&&!confirm("Kapacita naplněna, přidat i tak?"))return;
-    S.assignments.push({slot:sl.id,horse:dragId,rider:null}); save(); renderSched(); renderHorses(); };
+  el.ondrop=e=>{ el.classList.remove("drop");
+    if(dragKind==="horse"){ e.preventDefault();
+      if(S.assignments.some(a=>a.slot===sl.id&&a.horse===dragId))return;
+      if(rows.length>=sl.cap&&!confirm("Kapacita naplněna, přidat i tak?"))return;
+      S.assignments.push({slot:sl.id,horse:dragId,rider:null}); save(); renderSched(); renderHorses(); return;
+    }
+    if(dragKind==="pair"&&dragPair){ e.preventDefault();
+      const ex=S.assignments.find(a=>a.slot===sl.id&&a.horse===dragPair.horse);
+      if(ex){ ex.rider=dragPair.rider; }
+      else{
+        if(rows.length>=sl.cap&&!confirm("Kapacita naplněna, přidat i tak?"))return;
+        S.assignments.push({slot:sl.id,horse:dragPair.horse,rider:dragPair.rider});
+      }
+      save(); renderSched(); renderHorses(); renderRiders();
+    }
+  };
   return el;
 }
 function editBooking(sl,bk){
@@ -488,8 +504,18 @@ function editBooking(sl,bk){
 
 /* ---------- pool ---------- */
 function renderPools(){
-  const ph=document.getElementById("poolHorses"),pr=document.getElementById("poolRiders");
-  if(!ph)return; ph.innerHTML=""; pr.innerHTML="";
+  const ph=document.getElementById("poolHorses"),pr=document.getElementById("poolRiders"),pp=document.getElementById("poolPairs");
+  if(!ph)return; ph.innerHTML=""; pr.innerHTML=""; pp.innerHTML="";
+  S.riders.slice().sort((a,b)=>a.name.localeCompare(b.name,"cs")).forEach(r=>{
+    (r.pref||[]).forEach(hid=>{ const h=horse(hid); if(!h)return;
+      const c=document.createElement("div"); c.className="chip pair"; c.draggable=true;
+      c.textContent=r.name.split(" ")[0]+" + "+h.name;
+      c.title=`${r.name} (${LEVELS[r.level]}) + ${h.name}`;
+      c.ondragstart=()=>{dragKind="pair";dragPair={rider:r.id,horse:hid};};
+      c.ondragend=()=>{dragKind=null;dragPair=null;};
+      pp.appendChild(c);
+    });
+  });
   S.horses.slice().sort((a,b)=>a.name.localeCompare(b.name,"cs")).forEach(h=>{
     const w=horseWeek(h.id);
     const c=document.createElement("div"); c.className="chip"; c.draggable=true;
