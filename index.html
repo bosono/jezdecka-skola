@@ -240,7 +240,7 @@ function demoData(){
   const SL=[],AS=[]; let sc=0;
   function slot(day,from,to,type,coach,horses){
     const id="s"+(++sc);
-    SL.push({id,day,from,to,type,coach,cap:Math.max(6,horses.length),place:""});
+    SL.push({id,day,from,to,type,coach,cap:horses.length||(type==="souk"?1:6),place:""});
     horses.forEach(n=>AS.push({slot:id,horse:nm[n],rider:null}));
   }
   slot(0,"16:00","17:00","skup","Martina",["Dally","Rubín","Adélka","Sargas","Charmed"]);
@@ -273,8 +273,8 @@ function demoData(){
 }
 
 let S=load();
-function load(){ try{const raw=localStorage.getItem("jezdecka_skola_v4"); if(raw) return JSON.parse(raw);}catch(e){} return demoData(); }
-function save(){ try{localStorage.setItem("jezdecka_skola_v4",JSON.stringify(S));}catch(e){} }
+function load(){ try{const raw=localStorage.getItem("jezdecka_skola_v5"); if(raw) return JSON.parse(raw);}catch(e){} return demoData(); }
+function save(){ try{localStorage.setItem("jezdecka_skola_v5",JSON.stringify(S));}catch(e){} }
 function uid(p){ return p+Math.random().toString(36).slice(2,8); }
 const byId=(arr,id)=>arr.find(x=>x.id===id);
 const riderName=id=>(byId(S.riders,id)||{}).name||"?";
