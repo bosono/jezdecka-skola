@@ -131,6 +131,7 @@
   .hchip .x{color:var(--bad);font-weight:700;border-radius:999px;width:15px;height:15px;display:inline-flex;align-items:center;justify-content:center;font-size:13px}
   .hchip .x:hover{background:#f6dcd5}
   .lempty{margin-top:7px;font-size:11.5px;color:var(--muted);text-align:center;padding:8px;border:1px dashed var(--line);border-radius:8px}
+  .ldemand{margin-top:6px;font-size:11px;color:#3f5f7d;background:#eef3f8;border-radius:6px;padding:3px 6px}
   .lissues{margin-top:6px;display:flex;flex-direction:column;gap:2px}
   .lissues div{font-size:11px}
   .lissues .w{color:var(--warn)} .lissues .b{color:var(--bad)}
@@ -222,7 +223,7 @@
       <input type="text" id="searchRider" placeholder="Hledat jméno…" style="flex:1;min-width:160px">
     </div>
     <table id="riderTable">
-      <thead><tr><th>Jméno</th><th>Úroveň</th><th>Preferovaní koně</th><th>Kontakt</th><th>Lekcí tento týden</th></tr></thead>
+      <thead><tr><th>Jméno</th><th>Úroveň</th><th>Stálí koně</th><th>Chce jezdit</th><th>Kontakt</th><th>Lekcí tento týden</th></tr></thead>
       <tbody></tbody>
     </table>
   </section>
@@ -286,18 +287,18 @@ function demoData(){
   slot(6,"09:00","10:00","souk","",[]);
   slot(6,"10:00","11:00","skup","",["Sikky","Klára","Šiml","Ryzka","Sargas","Charmed"]);
   const riders=[
-    {id:"r1",name:"Adéla Nováková",level:"zacatecnik",pref:["h1"],contact:"721 111 222"},
-    {id:"r2",name:"Bára Kučerová",level:"pokrocily",pref:["h7","h8"],contact:"602 333 444"},
-    {id:"r3",name:"Cyril Dvořák",level:"zavodnik",pref:["h9"],contact:"777 555 666"},
-    {id:"r4",name:"Dana Horáková",level:"zacatecnik",pref:["h3"],contact:"605 777 888"},
-    {id:"r5",name:"Eva Marešová",level:"pokrocily",pref:["h10"],contact:"720 999 000"},
+    {id:"r1",name:"Adéla Nováková",level:"zacatecnik",pref:["h1"],contact:"721 111 222",want:["s1","s11"]},
+    {id:"r2",name:"Bára Kučerová",level:"pokrocily",pref:["h7","h8"],contact:"602 333 444",want:["s2","s5","s10"]},
+    {id:"r3",name:"Cyril Dvořák",level:"zavodnik",pref:["h9"],contact:"777 555 666",want:["s10","s17"]},
+    {id:"r4",name:"Dana Horáková",level:"zacatecnik",pref:["h3"],contact:"605 777 888",want:["s1","s4"]},
+    {id:"r5",name:"Eva Marešová",level:"pokrocily",pref:["h10"],contact:"720 999 000",want:["s5","s12"]},
   ];
   return {horses:H,slots:SL,assignments:AS,riders};
 }
 
 let S=load();
-function load(){ try{const raw=localStorage.getItem("jezdecka_skola_v7"); if(raw) return JSON.parse(raw);}catch(e){} return demoData(); }
-function save(){ try{localStorage.setItem("jezdecka_skola_v7",JSON.stringify(S));}catch(e){} }
+function load(){ try{const raw=localStorage.getItem("jezdecka_skola_v8"); if(raw) return JSON.parse(raw);}catch(e){} return demoData(); }
+function save(){ try{localStorage.setItem("jezdecka_skola_v8",JSON.stringify(S));}catch(e){} }
 function uid(p){ return p+Math.random().toString(36).slice(2,8); }
 const byId=(arr,id)=>arr.find(x=>x.id===id);
 const riderName=id=>(byId(S.riders,id)||{}).name||"?";
@@ -342,9 +343,11 @@ function renderRiders(){
   const tb=document.querySelector("#riderTable tbody"); tb.innerHTML="";
   S.riders.filter(r=>(!lv||r.level===lv)&&r.name.toLowerCase().includes(q)).sort((a,b)=>a.name.localeCompare(b.name,"cs")).forEach(r=>{
     const tr=document.createElement("tr"); tr.className="row"; tr.onclick=()=>editRider(r.id);
+    const wl=(r.want||[]).map(sid=>byId(S.slots,sid)).filter(Boolean).sort((a,b)=>a.day-b.day||toMin(a.from)-toMin(b.from));
     tr.innerHTML=`<td><strong>${esc(r.name)}</strong></td>
       <td><span class="tag lvl-${r.level}">${LEVELS[r.level]}</span></td>
-      <td>${r.pref.map(h=>`<span class="pill">${esc((horse(h)||{}).name||"?")}</span>`).join(" ")||'<span class="muted">–</span>'}</td>
+      <td>${(r.pref||[]).map(h=>`<span class="pill">${esc((horse(h)||{}).name||"?")}</span>`).join(" ")||'<span class="muted">–</span>'}</td>
+      <td style="font-size:12.5px">${wl.map(s=>`<span class="pill">${DAYS[s.day]} ${s.from}</span>`).join(" ")||'<span class="muted">–</span>'}</td>
       <td class="muted">${esc(r.contact||"–")}</td>
       <td>${riderWeekLessons(r.id)}</td>`;
     tb.appendChild(tr);
@@ -353,21 +356,27 @@ function renderRiders(){
 document.getElementById("searchRider").oninput=renderRiders;
 document.getElementById("filterLevel").onchange=renderRiders;
 document.getElementById("addRider").onclick=()=>editRider(null);
+function slotLabel(s){ return `${DAYS[s.day]} ${s.from} · ${TYPES[s.type].name}`; }
 function editRider(id){
-  const r=id?byId(S.riders,id):{name:"",level:"zacatecnik",pref:[],contact:""};
-  const opts=S.horses.map(h=>`<label><input type="checkbox" value="${h.id}" ${r.pref.includes(h.id)?"checked":""}> ${esc(h.name)}</label>`).join("");
+  const r=id?byId(S.riders,id):{name:"",level:"zacatecnik",pref:[],contact:"",want:[]};
+  const opts=S.horses.map(h=>`<label><input type="checkbox" value="${h.id}" ${(r.pref||[]).includes(h.id)?"checked":""}> ${esc(h.name)}</label>`).join("");
+  const wopts=S.slots.slice().sort((a,b)=>a.day-b.day||toMin(a.from)-toMin(b.from))
+    .map(s=>`<label><input type="checkbox" data-want="${s.id}" ${(r.want||[]).includes(s.id)?"checked":""}> ${slotLabel(s)}</label>`).join("");
   openModal(`
     <h3>${id?"Upravit jezdce":"Nový jezdec"}</h3>
     <div class="field"><label>Jméno</label><input type="text" id="f_name" value="${esc(r.name)}"></div>
     <div class="field"><label>Úroveň</label><select id="f_level">${Object.entries(LEVELS).map(([k,v])=>`<option value="${k}" ${r.level===k?"selected":""}>${v}</option>`).join("")}</select></div>
     <div class="field"><label>Kontakt</label><input type="text" id="f_contact" value="${esc(r.contact||"")}"></div>
     <div class="field"><label>Stálí koně / dvojice — objeví se v panelu rozvrhu jako přetahovatelná dvojice</label><div class="checks">${opts}</div></div>
+    <div class="field"><label>Termíny, kdy chce jezdit — v rozvrhu se u lekce ukáže „chce sem“ a v nabídce posazení jde nahoru</label><div class="checks wantchecks" style="max-height:170px;overflow:auto">${wopts||'<span class="muted" style="font-size:13px">Zatím žádné lekce v rozvrhu.</span>'}</div></div>
   `,{
     onSave(){
       const name=document.getElementById("f_name").value.trim(); if(!name) return alert("Zadej jméno");
-      const o={name,level:document.getElementById("f_level").value,contact:document.getElementById("f_contact").value.trim(),pref:[...document.querySelectorAll(".checks input:checked")].map(c=>c.value)};
+      const o={name,level:document.getElementById("f_level").value,contact:document.getElementById("f_contact").value.trim(),
+        pref:[...document.querySelectorAll(".checks:not(.wantchecks) input:checked")].map(c=>c.value),
+        want:[...document.querySelectorAll(".wantchecks input:checked")].map(c=>c.dataset.want)};
       if(id) Object.assign(byId(S.riders,id),o); else S.riders.push({id:uid("r"),...o});
-      save(); renderRiders(); renderPools();
+      save(); renderRiders(); renderPools(); renderSched();
     },
     onDelete:id?()=>{ if(!confirm("Smazat jezdce?"))return; S.riders=S.riders.filter(x=>x.id!==id); S.assignments.forEach(a=>{if(a.rider===id)a.rider=null;}); save(); renderRiders(); renderSched(); renderPools(); }:null
   });
@@ -458,10 +467,13 @@ function candRiders(sl,hid){
     const clash=riderClash(r.id,sl);
     const levelOk=LEVEL_RANK[r.level]>=LEVEL_RANK[t.minLevel];
     const stable=hid&&(r.pref||[]).includes(hid);
+    const wants=(r.want||[]).includes(sl.id);
     const placed=riderPlaced(r.id);
-    let rank=5; if(stable)rank=0; else if(levelOk&&!placed)rank=1; else if(levelOk)rank=2; else rank=3;
+    let rank=6;
+    if(wants&&stable)rank=0; else if(wants)rank=1; else if(stable)rank=2;
+    else if(levelOk&&!placed)rank=3; else if(levelOk)rank=4; else rank=5;
     if(clash)rank=9;
-    const tags=[]; if(stable)tags.push("stálý kůň"); if(!levelOk)tags.push("nízká úroveň"); if(clash)tags.push("kolize v čase"); if(placed&&!clash)tags.push("už má lekci");
+    const tags=[]; if(wants)tags.push("chce tento termín"); if(stable)tags.push("stálý kůň"); if(!levelOk)tags.push("nízká úroveň"); if(clash)tags.push("kolize v čase"); if(placed&&!clash)tags.push("už má lekci");
     return {r,clash,rank,tags};
   }).sort((a,b)=>a.rank-b.rank||a.r.name.localeCompare(b.r.name,"cs"));
 }
@@ -524,6 +536,12 @@ function renderLesson(sl){
   });
   el.appendChild(chips);
   if(!rows.length){ const e=document.createElement("div"); e.className="lempty"; e.textContent="přetáhni koně sem"; el.appendChild(e); }
+  const wanters=S.riders.filter(r=>(r.want||[]).includes(sl.id)&&!rows.some(a=>a.rider===r.id));
+  if(wanters.length){
+    const d=document.createElement("div"); d.className="ldemand";
+    d.textContent="chce sem: "+wanters.map(r=>r.name.split(" ")[0]).join(", ");
+    el.appendChild(d);
+  }
   if(allIssues.length){
     const box=document.createElement("div"); box.className="lissues";
     allIssues.forEach(([k,txt])=>{ const l=document.createElement("div"); l.className=k; l.textContent=(k==="b"?"⛔ ":"⚠ ")+txt; box.appendChild(l); });
@@ -585,7 +603,8 @@ function editBooking(sl,bk){
 function riderChip(r){
   const c=document.createElement("div"); c.className="chip rider"; c.draggable=true;
   c.textContent=r.name.split(" ")[0]+" "+((r.name.split(" ")[1]||"")[0]||"")+".";
-  c.title=r.name+" — "+LEVELS[r.level];
+  const wl=(r.want||[]).map(sid=>byId(S.slots,sid)).filter(Boolean).sort((a,b)=>a.day-b.day||toMin(a.from)-toMin(b.from));
+  c.title=r.name+" — "+LEVELS[r.level]+(wl.length?"\nchce: "+wl.map(s=>DAYS[s.day]+" "+s.from).join(", "):"");
   c.ondragstart=()=>{dragKind="rider";dragId=r.id;markTargets();}; c.ondragend=()=>{dragKind=null;dragId=null;clearTargets();};
   return c;
 }
