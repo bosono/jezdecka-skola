@@ -79,7 +79,11 @@
   .chip[draggable=true]:active{cursor:grabbing}
   .pool .hint{font-size:11.5px;color:var(--muted);margin:2px 0 0;line-height:1.45}
 
-  .board{flex:1;display:grid;grid-template-columns:repeat(7,minmax(178px,1fr));gap:12px;overflow-x:auto;padding-bottom:6px}
+  .board{flex:1;display:grid;gap:12px;overflow-x:auto;padding-bottom:10px}
+  .board::-webkit-scrollbar{height:12px}
+  .board::-webkit-scrollbar-track{background:var(--accent-soft);border-radius:999px}
+  .board::-webkit-scrollbar-thumb{background:var(--accent);border-radius:999px;border:3px solid var(--accent-soft)}
+  .board{scrollbar-color:var(--accent) var(--accent-soft);scrollbar-width:auto}
   .daycol{background:var(--panel);border-radius:var(--radius);box-shadow:0 1px 3px rgba(0,0,0,.05);display:flex;flex-direction:column;min-height:120px}
   .daycol > h3{margin:0;padding:10px 12px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel);border-radius:var(--radius) var(--radius) 0 0}
   .daycol.today > h3{color:#fff;background:var(--accent)}
@@ -149,6 +153,7 @@
     <p class="sub">Týdenní šablona. Přetáhni koně z panelu do lekce — kůň bez jezdce je <strong style="color:var(--ok)">volný</strong> (nominovaný, k nabídnutí klientovi). Kliknutím na koně přiřadíš jezdce (vznikne dvojice) nebo koně odebereš. Varování jsou upozornění, časová kolize koně blokuje.</p>
     <div class="board-tools">
       <span class="pill">Týdenní šablona</span>
+      <label style="font-size:12.5px;display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="showEmpty"> zobrazit prázdné dny</label>
       <span class="muted" style="font-size:12.5px">konkrétní datumy a výjimky – další fáze</span>
     </div>
     <div class="layout">
@@ -410,7 +415,10 @@ let dragKind=null,dragId=null;
 function renderSched(){
   const board=document.getElementById("board"); board.innerHTML="";
   const todayIdx=(new Date().getDay()+6)%7;
-  DAYS.forEach((d,di)=>{
+  const showEmpty=document.getElementById("showEmpty").checked;
+  const visible=DAYS.map((d,di)=>di).filter(di=>showEmpty||S.slots.some(s=>s.day===di));
+  board.style.gridTemplateColumns=`repeat(${visible.length},minmax(190px,1fr))`;
+  visible.forEach(di=>{
     const col=document.createElement("div"); col.className="daycol"+(di===todayIdx?" today":"");
     col.innerHTML=`<h3>${DAYS_LONG[di]}</h3>`;
     const body=document.createElement("div"); body.className="daybody";
@@ -545,6 +553,7 @@ document.getElementById("modalBg").onclick=e=>{ if(e.target.id==="modalBg") clos
 document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeModal(); });
 function esc(s){ return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 
+document.getElementById("showEmpty").onchange=renderSched;
 document.getElementById("resetBtn").onclick=()=>{ if(!confirm("Obnovit ukázková data? Změny se ztratí."))return; S=demoData(); save(); renderAll(); };
 function renderAll(){ renderSched(); renderHorses(); renderRiders(); }
 renderAll();
