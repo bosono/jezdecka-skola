@@ -226,8 +226,8 @@ function demoData(){
     {id:"h1",name:"Dally",breed:"",pony:false,disc:{skup:1},maxDay:2,maxWeek:8,maxHours:8,restDays:[]},
     {id:"h2",name:"Rubín",breed:"",pony:false,disc:{skup:1},maxDay:2,maxWeek:8,maxHours:8,restDays:[]},
     {id:"h3",name:"Adélka",breed:"",pony:false,disc:{skup:1},maxDay:2,maxWeek:8,maxHours:8,restDays:[]},
-    {id:"h4",name:"Sargas",breed:"",pony:true,disc:{skup:1},maxDay:2,maxWeek:6,maxHours:5,restDays:[]},
-    {id:"h5",name:"Charmed",breed:"",pony:true,disc:{skup:1},maxDay:2,maxWeek:6,maxHours:5,restDays:[]},
+    {id:"h4",name:"Sargas",breed:"",pony:true,disc:{skup:1},maxDay:2,maxWeek:8,maxHours:7,restDays:[]},
+    {id:"h5",name:"Charmed",breed:"",pony:true,disc:{skup:1},maxDay:2,maxWeek:8,maxHours:7,restDays:[]},
     {id:"h6",name:"Fatra",breed:"",pony:false,disc:{skup:1,komb:1,skok:1},maxDay:2,maxWeek:8,maxHours:8,restDays:[]},
     {id:"h7",name:"Klára",breed:"",pony:false,disc:{skup:1,kaval:1,komb:1,skok:1},maxDay:2,maxWeek:8,maxHours:8,restDays:[]},
     {id:"h8",name:"Laila",breed:"",pony:false,disc:{skup:1,kaval:1,komb:1,skok:1},maxDay:2,maxWeek:8,maxHours:8,restDays:[]},
@@ -261,7 +261,7 @@ function demoData(){
   slot(4,"17:00","18:00","skup","Eva",["Lady","Rubín","Adélka","Dally","Sargas","Charmed"]);
   slot(4,"18:00","19:00","komb","Áňa",["Klára","Fatra","Ryzka","Laila","Šiml"]);
   slot(6,"09:00","10:00","souk","",[]);
-  slot(6,"10:00","11:00","skup","",[]);
+  slot(6,"10:00","11:00","skup","",["Sikky","Klára","Šiml","Ryzka","Sargas","Charmed"]);
   const riders=[
     {id:"r1",name:"Adéla Nováková",level:"zacatecnik",pref:[],contact:"721 111 222"},
     {id:"r2",name:"Bára Kučerová",level:"pokrocily",pref:["h7","h8"],contact:"602 333 444"},
@@ -273,8 +273,8 @@ function demoData(){
 }
 
 let S=load();
-function load(){ try{const raw=localStorage.getItem("jezdecka_skola_v3"); if(raw) return JSON.parse(raw);}catch(e){} return demoData(); }
-function save(){ try{localStorage.setItem("jezdecka_skola_v3",JSON.stringify(S));}catch(e){} }
+function load(){ try{const raw=localStorage.getItem("jezdecka_skola_v4"); if(raw) return JSON.parse(raw);}catch(e){} return demoData(); }
+function save(){ try{localStorage.setItem("jezdecka_skola_v4",JSON.stringify(S));}catch(e){} }
 function uid(p){ return p+Math.random().toString(36).slice(2,8); }
 const byId=(arr,id)=>arr.find(x=>x.id===id);
 const riderName=id=>(byId(S.riders,id)||{}).name||"?";
