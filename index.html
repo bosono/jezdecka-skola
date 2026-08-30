@@ -97,7 +97,8 @@
   .lhead{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
   .ltime{font-weight:700;font-variant-numeric:tabular-nums}
   .ltype{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
-  .lmeta{width:100%;display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-top:1px}
+  .lmeta{width:100%;display:flex;justify-content:space-between;gap:8px;font-size:11.5px;color:var(--muted);margin-top:1px}
+  .lmeta > span:last-child{white-space:nowrap}
   .lgear{cursor:pointer;opacity:.5;font-size:12px}
   .lgear:hover{opacity:1}
   .hchips{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px}
@@ -107,8 +108,9 @@
   .hchip.warn{border-color:var(--warn);background:#fff8ec}
   .hchip.bad{border-color:var(--bad);background:#fcefec}
   .hchip.dropr{outline:2px dashed var(--accent)}
+  .hchip.free{border-style:dashed}
   .hchip .rd{color:var(--accent);font-weight:600}
-  .hchip .rd.empty{color:var(--muted);font-weight:400;font-size:11px}
+  .hchip .rd.empty{color:var(--ok);font-weight:600;font-size:11px}
   .hchip .x{color:var(--bad);font-weight:700;border-radius:999px;width:15px;height:15px;display:inline-flex;align-items:center;justify-content:center;font-size:13px}
   .hchip .x:hover{background:#f6dcd5}
   .lempty{margin-top:7px;font-size:11.5px;color:var(--muted);text-align:center;padding:8px;border:1px dashed var(--line);border-radius:8px}
@@ -144,7 +146,7 @@
   <!-- ROZVRH -->
   <section class="view active" id="view-rozvrh">
     <h2>Rozvrh lekcí</h2>
-    <p class="sub">Týdenní šablona. Přetáhni koně z panelu do lekce. Kliknutím na koně v lekci přiřadíš jezdce (klienta) nebo koně odebereš. Varování jsou upozornění, časová kolize koně blokuje.</p>
+    <p class="sub">Týdenní šablona. Přetáhni koně z panelu do lekce — kůň bez jezdce je <strong style="color:var(--ok)">volný</strong> (nominovaný, k nabídnutí klientovi). Kliknutím na koně přiřadíš jezdce (vznikne dvojice) nebo koně odebereš. Varování jsou upozornění, časová kolize koně blokuje.</p>
     <div class="board-tools">
       <span class="pill">Týdenní šablona</span>
       <span class="muted" style="font-size:12.5px">konkrétní datumy a výjimky – další fáze</span>
@@ -424,9 +426,10 @@ function renderLesson(sl){
   const t=TYPES[sl.type];
   const el=document.createElement("div"); el.className="lesson "+t.cls;
   const rows=S.assignments.filter(a=>a.slot===sl.id);
+  const freeCnt=rows.filter(a=>!a.rider).length;
   const head=document.createElement("div"); head.className="lhead";
   head.innerHTML=`<span class="ltime">${sl.from}–${sl.to}</span><span class="ltype">${t.name}</span>
-    <span class="lmeta"><span>${esc(sl.coach||"—")}${sl.place?" · "+esc(sl.place):""}</span><span>${rows.length}/${sl.cap} <span class="lgear" title="Upravit lekci">⚙</span></span></span>`;
+    <span class="lmeta"><span>${esc(sl.coach||"—")}${sl.place?" · "+esc(sl.place):""}</span><span>${rows.length}/${sl.cap}${freeCnt?` · <span style="color:var(--ok)">${freeCnt} voln${freeCnt===1?"ý":freeCnt<5?"í":"ých"}</span>`:""} <span class="lgear" title="Upravit lekci">⚙</span></span></span>`;
   head.querySelector(".lgear").onclick=e=>{ e.stopPropagation(); editSlot(sl.id); };
   el.appendChild(head);
 
@@ -436,9 +439,9 @@ function renderLesson(sl){
     const iss=bookingIssues(sl,a); iss.warn.forEach(w=>allIssues.push(["w",w])); iss.bad.forEach(w=>allIssues.push(["b",w]));
     const h=horse(a.horse);
     const c=document.createElement("span");
-    c.className="hchip"+(iss.bad.length?" bad":iss.warn.length?" warn":"");
+    c.className="hchip"+(iss.bad.length?" bad":iss.warn.length?" warn":"")+(a.rider?"":" free");
     c.innerHTML=`<span>${h?esc(h.name):"?"}${h&&h.pony?'<span class="pony">p</span>':''}</span>`+
-      (a.rider?`<span class="rd">${esc(riderName(a.rider).split(" ")[0])}</span>`:`<span class="rd empty">+ jezdec</span>`)+
+      (a.rider?`<span class="rd">${esc(riderName(a.rider).split(" ")[0])}</span>`:`<span class="rd empty">volný</span>`)+
       `<span class="x" title="Odebrat">×</span>`;
     c.onclick=e=>{ if(e.target.classList.contains("x")){ S.assignments=S.assignments.filter(x=>x!==a); save(); renderSched(); renderHorses(); renderRiders(); } else editBooking(sl,a); };
     c.ondragover=e=>{ if(dragKind==="rider"){ e.preventDefault(); c.classList.add("dropr"); } };
