@@ -164,7 +164,7 @@
     <button data-view="jezdci">Jezdci</button>
   </nav>
   <div class="spacer"></div>
-  <button class="tool" id="resetBtn">Obnovit ukázková data</button>
+  <button class="tool" id="resetBtn">Obnovit výchozí rozpis</button>
 </header>
 
 <main>
@@ -179,11 +179,12 @@
       <button class="btn sm ghost" id="newWeek" title="Uvolní jednorázově přiřazené jezdce, pravidelné (📌) nechá">Nový týden</button>
       <label style="font-size:12.5px;display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="showEmpty"> zobrazit prázdné dny</label>
       <span class="muted" style="font-size:12.5px">konkrétní datumy a výjimky – další fáze</span>
-      <span style="flex:1"></span>
-      <label style="font-size:12.5px;display:flex;align-items:center;gap:6px">Týden od
-        <input type="date" id="ssWeek" style="padding:5px 8px;border:1px solid #e4ddd2;border-radius:8px;font:inherit"></label>
-      <button class="btn sm ghost" id="ssPreview" title="Náhled, co by se zapsalo do SuperSaaS">Náhled SuperSaaS</button>
-      <button class="btn sm" id="ssPush" title="Odeslat celý týden do rezervačního systému">Odeslat týden →</button>
+      <span id="ssBar" style="display:none;margin-left:auto;align-items:center;gap:10px">
+        <label style="font-size:12.5px;display:flex;align-items:center;gap:6px">Týden od
+          <input type="date" id="ssWeek" style="padding:5px 8px;border:1px solid #e4ddd2;border-radius:8px;font:inherit"></label>
+        <button class="btn sm ghost" id="ssPreview" title="Náhled, co by se zapsalo do SuperSaaS">Náhled SuperSaaS</button>
+        <button class="btn sm" id="ssPush" title="Odeslat celý týden do rezervačního systému">Odeslat týden →</button>
+      </span>
     </div>
     <div class="layout">
       <aside class="pool">
@@ -300,13 +301,9 @@ function demoData(){
   slot(4,"18:00","19:00","komb","Áňa",["Klára","Fatra","Ryzka","Laila","Šiml"]);
   slot(6,"09:00","10:00","souk","",[]);
   slot(6,"10:00","11:00","skup","",["Sikky","Klára","Šiml","Ryzka","Sargas","Charmed"]);
-  const riders=[
-    {id:"r1",name:"Adéla Nováková",level:"zacatecnik",pref:["h1"],contact:"721 111 222",want:["s1","s11"],mounts:{pony:true,horse:true}},
-    {id:"r2",name:"Bára Kučerová",level:"pokrocily",pref:["h7","h8"],contact:"602 333 444",want:["s2","s5","s10"],mounts:{pony:false,horse:true}},
-    {id:"r3",name:"Cyril Dvořák",level:"zavodnik",pref:["h9"],contact:"777 555 666",want:["s10","s17"],mounts:{pony:false,horse:true}},
-    {id:"r4",name:"Dana Horáková",level:"zacatecnik",pref:["h4"],contact:"605 777 888",want:["s1","s4"],mounts:{pony:true,horse:false}},
-    {id:"r5",name:"Eva Marešová",level:"pokrocily",pref:["h10"],contact:"720 999 000",want:["s5","s12"],mounts:{pony:false,horse:true}},
-  ];
+  // Výchozí stav = reálný týdenní rozvrh + koně nasazení do lekcí (šablona prvního týdne).
+  // Databáze jezdců začíná prázdná — naplníš ji v záložce Jezdci.
+  const riders=[];
   return {horses:H,slots:SL,assignments:AS,riders};
 }
 
@@ -739,7 +736,7 @@ document.getElementById("newWeek").onclick=()=>{
   S.assignments.forEach(a=>{ if(a.rider&&!a.regular) a.rider=null; });
   save(); renderAll();
 };
-document.getElementById("resetBtn").onclick=()=>{ if(!confirm("Obnovit ukázková data? Změny se ztratí."))return; S=demoData(); save(); renderAll(); };
+document.getElementById("resetBtn").onclick=()=>{ if(!confirm("Obnovit výchozí rozpis? Smaže VŠECHNY jezdce i jejich přiřazení a vrátí prázdný první týden (koně a lekce zůstanou)."))return; S=demoData(); save(); renderAll(); };
 function renderAll(){ renderSched(); renderHorses(); renderRiders(); }
 
 function showLogin(){ document.getElementById("loginOverlay").style.display="flex"; }
@@ -785,14 +782,14 @@ async function ssPush(dryRun){
   }
 }
 async function ssInit(){
+  const bar=document.getElementById("ssBar");
+  let configured=false;
+  try{ configured=(await (await fetch(BASE+"/api/supersaas/status")).json()).configured; }catch(e){}
+  if(!configured){ bar.style.display="none"; return; } // verze bez API — toolbar skrytý, objeví se po doplnění klíčů
+  bar.style.display="flex";
   document.getElementById("ssWeek").value=mondayOfThisWeek();
-  const btn=document.getElementById("ssPush");
-  try{
-    const st=await (await fetch(BASE+"/api/supersaas/status")).json();
-    if(!st.configured){ btn.textContent="Odeslat týden (bez klíče)"; btn.title="SuperSaaS není nakonfigurován — funguje jen náhled"; }
-  }catch(e){}
   document.getElementById("ssPreview").onclick=()=>ssPush(true);
-  btn.onclick=()=>{ if(confirm("Odeslat celý týden do SuperSaaS? Přepíše rezervace v daném rozsahu.")) ssPush(false); };
+  document.getElementById("ssPush").onclick=()=>{ if(confirm("Odeslat celý týden do SuperSaaS? Přepíše rezervace v daném rozsahu.")) ssPush(false); };
 }
 boot();
 </script>
