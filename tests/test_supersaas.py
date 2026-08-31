@@ -53,3 +53,53 @@ def test_week_range_whole_week():
     frm, to = supersaas.week_range(MONDAY)
     assert frm == "2026-08-31 00:00:00"
     assert to == "2026-09-07 00:00:00"
+
+
+import supersaas as ss
+
+
+class FakeTransport:
+    def __init__(self):
+        self.calls = []
+        self.range_result = b"[]"
+
+    def __call__(self, method, url, headers, data):
+        self.calls.append((method, url, data))
+        if method == "GET":
+            return 200, self.range_result, {}
+        if method == "POST":
+            return 201, b"{}", {"Location": "/api/bookings/999.json"}
+        if method == "DELETE":
+            return 200, b"", {}
+        return 400, b"", {}
+
+
+def test_client_create_returns_id_from_location():
+    t = FakeTransport()
+    client = ss.SuperSaasClient("KEY", "42", transport=t)
+    bid = client.create_booking({"start": "2026-08-31 16:00:00", "finish": "2026-08-31 17:00:00", "full_name": "Skupinová"})
+    assert bid == "999"
+    method, url, data = t.calls[0]
+    assert method == "POST"
+    assert "api_key=KEY" in url
+
+
+def test_client_replace_deletes_then_creates():
+    t = FakeTransport()
+    t.range_result = b'[{"id": 111}, {"id": 222}]'
+    client = ss.SuperSaasClient("KEY", "42", transport=t)
+    bookings = [{"start": "2026-08-31 16:00:00", "finish": "2026-08-31 17:00:00", "full_name": "A"}]
+    result = client.replace(bookings, "2026-08-31 00:00:00", "2026-09-07 00:00:00")
+    assert result["deleted"] == 2
+    assert result["created"] == 1
+    methods = [c[0] for c in t.calls]
+    assert methods == ["GET", "DELETE", "DELETE", "POST"]
+
+
+def test_is_configured(monkeypatch):
+    monkeypatch.delenv("SUPERSAAS_API_KEY", raising=False)
+    monkeypatch.delenv("SUPERSAAS_SCHEDULE_ID", raising=False)
+    assert ss.is_configured() is False
+    monkeypatch.setenv("SUPERSAAS_API_KEY", "k")
+    monkeypatch.setenv("SUPERSAAS_SCHEDULE_ID", "42")
+    assert ss.is_configured() is True
