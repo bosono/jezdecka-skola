@@ -358,9 +358,9 @@ function bookingIssues(slot,bk){
   }
   if(bk.rider){
     const r=byId(S.riders,bk.rider);
-    if(r&&LEVEL_RANK[r.level]<LEVEL_RANK[t.minLevel]) out.warn.push(`${r.name.split(" ")[0]}: nízká úroveň na tuto lekci`);
-    if(r&&h&&!canRide(r,h)) out.bad.push(`${r.name.split(" ")[0]}: ${h.pony?"nejezdí na pony":"PONY jezdec nemůže na koně"} (${h.name})`);
-    if(S.assignments.some(a=>a.rider===bk.rider&&a.slot!==slot.id&&overlap(byId(S.slots,a.slot),slot))) out.bad.push(`${riderName(bk.rider).split(" ")[0]}: kolize s jinou lekcí`);
+    if(r&&LEVEL_RANK[r.level]<LEVEL_RANK[t.minLevel]) out.warn.push(`${r.name}: nízká úroveň na tuto lekci`);
+    if(r&&h&&!canRide(r,h)) out.bad.push(`${r.name}: ${h.pony?"nejezdí na pony":"PONY jezdec nemůže na koně"} (${h.name})`);
+    if(S.assignments.some(a=>a.rider===bk.rider&&a.slot!==slot.id&&overlap(byId(S.slots,a.slot),slot))) out.bad.push(`${riderName(bk.rider)}: kolize s jinou lekcí`);
   }
   return out;
 }
@@ -568,7 +568,7 @@ function renderLesson(sl){
     const c=document.createElement("span");
     c.className="hchip"+(iss.bad.length?" bad":iss.warn.length?" warn":"")+(a.rider?"":" free");
     c.innerHTML=`<span>${h?esc(h.name):"?"}${h&&h.pony?'<span class="pony">p</span>':''}</span>`+
-      (a.rider?`<span class="rd">${esc(riderName(a.rider).split(" ")[0])}${a.regular?'<span class="pin" title="Pravidelně">📌</span>':''}</span>`:`<span class="rd empty">volný</span>`)+
+      (a.rider?`<span class="rd">${esc(riderName(a.rider))}${a.regular?'<span class="pin" title="Pravidelně">📌</span>':''}</span>`:`<span class="rd empty">volný</span>`)+
       `<span class="x" title="Odebrat">×</span>`;
     c.onclick=e=>{ if(e.target.classList.contains("x")){ S.assignments=S.assignments.filter(x=>x!==a); save(); renderSched(); renderHorses(); renderRiders(); } else editBooking(sl,a); };
     c.ondragover=e=>{ if(dragKind==="rider"||dragKind==="pair"){ e.preventDefault(); c.classList.add("dropr"); } };
@@ -585,7 +585,7 @@ function renderLesson(sl){
   const wanters=S.riders.filter(r=>(r.want||[]).includes(sl.id)&&!rows.some(a=>a.rider===r.id));
   if(wanters.length){
     const d=document.createElement("div"); d.className="ldemand";
-    d.textContent="chce sem: "+wanters.map(r=>r.name.split(" ")[0]).join(", ");
+    d.textContent="chce sem: "+wanters.map(r=>r.name).join(", ");
     el.appendChild(d);
   }
   if(allIssues.length){
@@ -648,7 +648,7 @@ function editBooking(sl,bk){
 /* ---------- pool ---------- */
 function riderChip(r){
   const c=document.createElement("div"); c.className="chip rider"; c.draggable=true;
-  c.textContent=r.name.split(" ")[0]+" "+((r.name.split(" ")[1]||"")[0]||"")+".";
+  c.textContent=r.name;
   const wl=(r.want||[]).map(sid=>byId(S.slots,sid)).filter(Boolean).sort((a,b)=>a.day-b.day||toMin(a.from)-toMin(b.from));
   c.title=r.name+" — "+LEVELS[r.level]+(wl.length?"\nchce: "+wl.map(s=>DAYS[s.day]+" "+s.from).join(", "):"");
   c.ondragstart=()=>{dragKind="rider";dragId=r.id;markTargets();}; c.ondragend=()=>{dragKind=null;dragId=null;clearTargets();};
@@ -661,7 +661,7 @@ function renderPools(){
   sorted.forEach(r=>{
     (r.pref||[]).forEach(hid=>{ const h=horse(hid); if(!h)return;
       const c=document.createElement("div"); c.className="chip pair"; c.draggable=true;
-      c.textContent=r.name.split(" ")[0]+" + "+h.name;
+      c.textContent=r.name+" + "+h.name;
       c.title=`${r.name} (${LEVELS[r.level]}) + ${h.name}`;
       c.ondragstart=()=>{dragKind="pair";dragPair={rider:r.id,horse:hid};markTargets();};
       c.ondragend=()=>{dragKind=null;dragPair=null;clearTargets();};
