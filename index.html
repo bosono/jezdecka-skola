@@ -147,6 +147,15 @@
 </style>
 </head>
 <body>
+<div id="loginOverlay" style="position:fixed;inset:0;background:#f5f2ec;display:none;align-items:center;justify-content:center;z-index:100">
+  <form id="loginForm" style="background:#fff;padding:28px;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.2);display:flex;flex-direction:column;gap:12px;min-width:280px">
+    <h2 style="margin:0 0 4px">🐴 Jezdecká škola</h2>
+    <label style="font-size:13px;color:#7d7468">Heslo</label>
+    <input type="password" id="loginPw" autofocus style="padding:10px;border:1px solid #e4ddd2;border-radius:8px;font:inherit">
+    <div id="loginErr" style="color:#b3543f;font-size:13px;display:none">Špatné heslo.</div>
+    <button type="submit" style="background:#7a5c3e;color:#fff;border:0;padding:10px;border-radius:9px;cursor:pointer;font:inherit">Přihlásit</button>
+  </form>
+</div>
 <header>
   <h1>🐴 Jezdecká škola</h1>
   <nav>
@@ -159,7 +168,7 @@
 </header>
 
 <main>
-  <div class="note">Klikací náhled (prototyp) s reálným týdenním rozpisem. Data se ukládají jen do tohoto prohlížeče (localStorage). Backend, přihlášení a nasazení přijdou v další fázi. Nedělní časy jsou zástupné.</div>
+  <div class="note">Klikací náhled (prototyp) s reálným týdenním rozpisem. Data se ukládají na server a jsou chráněná heslem. Nedělní časy jsou zástupné.</div>
 
   <!-- ROZVRH -->
   <section class="view active" id="view-rozvrh">
@@ -296,9 +305,31 @@ function demoData(){
   return {horses:H,slots:SL,assignments:AS,riders};
 }
 
-let S=load();
-function load(){ try{const raw=localStorage.getItem("jezdecka_skola_v9"); if(raw) return JSON.parse(raw);}catch(e){} return demoData(); }
-function save(){ try{localStorage.setItem("jezdecka_skola_v9",JSON.stringify(S));}catch(e){} }
+let S={horses:[],riders:[],slots:[],assignments:[]};
+let STATE_VERSION=0;
+let saveTimer=null, saveInFlight=false, saveAgain=false;
+const BASE="";
+
+async function apiSave(){
+  if(saveInFlight){ saveAgain=true; return; }
+  saveInFlight=true;
+  try{
+    const resp=await fetch(BASE+"/api/state",{method:"PUT",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({version:STATE_VERSION,data:S})});
+    if(resp.status===409){
+      const cur=await resp.json();
+      alert("Data mezitím změnil někdo jiný. Načítám aktuální verzi — zkontroluj prosím poslední úpravu.");
+      STATE_VERSION=cur.version; if(cur.data) S=cur.data; renderAll(); return;
+    }
+    if(resp.status===401){ showLogin(); return; }
+    if(resp.ok){ STATE_VERSION=(await resp.json()).version; }
+  }catch(e){ /* offline: zůstává v paměti, uloží se dalším savem */ }
+  finally{
+    saveInFlight=false;
+    if(saveAgain){ saveAgain=false; apiSave(); }
+  }
+}
+function save(){ clearTimeout(saveTimer); saveTimer=setTimeout(apiSave,400); }
 function uid(p){ return p+Math.random().toString(36).slice(2,8); }
 const byId=(arr,id)=>arr.find(x=>x.id===id);
 const riderName=id=>(byId(S.riders,id)||{}).name||"?";
@@ -705,7 +736,30 @@ document.getElementById("newWeek").onclick=()=>{
 };
 document.getElementById("resetBtn").onclick=()=>{ if(!confirm("Obnovit ukázková data? Změny se ztratí."))return; S=demoData(); save(); renderAll(); };
 function renderAll(){ renderSched(); renderHorses(); renderRiders(); }
-renderAll();
+
+function showLogin(){ document.getElementById("loginOverlay").style.display="flex"; }
+function hideLogin(){ document.getElementById("loginOverlay").style.display="none"; }
+
+async function loadState(){
+  const resp=await fetch(BASE+"/api/state");
+  if(resp.status===401){ showLogin(); return false; }
+  const st=await resp.json();
+  STATE_VERSION=st.version;
+  if(st.data){ S=st.data; }
+  else { S=demoData(); await apiSave(); }
+  hideLogin(); renderAll(); return true;
+}
+
+document.getElementById("loginForm").onsubmit=async e=>{
+  e.preventDefault();
+  const pw=document.getElementById("loginPw").value;
+  const resp=await fetch(BASE+"/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password:pw})});
+  if(resp.ok){ document.getElementById("loginErr").style.display="none"; await loadState(); }
+  else { document.getElementById("loginErr").style.display="block"; }
+};
+
+async function boot(){ await loadState(); }
+boot();
 </script>
 </body>
 </html>
