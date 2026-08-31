@@ -116,8 +116,10 @@
   .ltype{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
   .lmeta{width:100%;display:flex;justify-content:space-between;gap:8px;font-size:11.5px;color:var(--muted);margin-top:1px}
   .lmeta > span:last-child{white-space:nowrap}
-  .lgear{cursor:pointer;opacity:.5;font-size:12px}
-  .lgear:hover{opacity:1}
+  .lgear{cursor:pointer;opacity:.5;font-size:13px;padding:2px 4px;margin:-2px -2px -2px 2px;border-radius:6px}
+  .lgear:hover{opacity:1;background:var(--line)}
+  .lhead{cursor:pointer}
+  .lhead:hover .lgear{opacity:1}
   .hchips{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px}
   .hchip{display:inline-flex;align-items:center;gap:5px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:2px 4px 2px 9px;font-size:12px;cursor:pointer;line-height:1.7;white-space:nowrap}
   .hchip:hover{border-color:var(--accent)}
@@ -557,7 +559,8 @@ function renderLesson(sl){
   const head=document.createElement("div"); head.className="lhead";
   head.innerHTML=`<span class="ltime">${sl.from}–${sl.to}</span><span class="ltype">${t.name}</span>
     <span class="lmeta"><span>${esc(sl.coach||"—")}${sl.place?" · "+esc(sl.place):""}</span><span>${rows.length}/${sl.cap}${freeCnt?` · <span style="color:var(--ok)">${freeCnt} voln${freeCnt===1?"ý":freeCnt<5?"í":"ých"}</span>`:""} <span class="lgear" title="Upravit lekci">⚙</span></span></span>`;
-  head.querySelector(".lgear").onclick=e=>{ e.stopPropagation(); editSlot(sl.id); };
+  head.title="Upravit lekci";
+  head.onclick=e=>{ e.stopPropagation(); editSlot(sl.id); };
   el.appendChild(head);
 
   const chips=document.createElement("div"); chips.className="hchips";
@@ -648,7 +651,8 @@ function editBooking(sl,bk){
 /* ---------- pool ---------- */
 function riderChip(r){
   const c=document.createElement("div"); c.className="chip rider"; c.draggable=true;
-  c.textContent=r.name;
+  const _n=riderWeekLessons(r.id);
+  c.textContent=r.name+(_n?` (${_n})`:"");
   const wl=(r.want||[]).map(sid=>byId(S.slots,sid)).filter(Boolean).sort((a,b)=>a.day-b.day||toMin(a.from)-toMin(b.from));
   c.title=r.name+" — "+LEVELS[r.level]+(wl.length?"\nchce: "+wl.map(s=>DAYS[s.day]+" "+s.from).join(", "):"");
   c.ondragstart=()=>{dragKind="rider";dragId=r.id;markTargets();}; c.ondragend=()=>{dragKind=null;dragId=null;clearTargets();};
@@ -676,9 +680,9 @@ function renderPools(){
     c.ondragstart=()=>{dragKind="horse";dragId=h.id;markTargets();}; c.ondragend=()=>{dragKind=null;dragId=null;clearTargets();};
     ph.appendChild(c);
   });
-  const unplaced=sorted.filter(r=>!riderPlaced(r.id));
-  document.getElementById("unplacedH").textContent=`Nezařazení jezdci${unplaced.length?" ("+unplaced.length+")":""}`;
-  unplaced.forEach(r=>pu.appendChild(riderChip(r)));
+  const unplacedCnt=sorted.filter(r=>!riderPlaced(r.id)).length;
+  document.getElementById("unplacedH").textContent=`Nezařazení jezdci${unplacedCnt?" ("+unplacedCnt+" z "+sorted.length+")":" (0 z "+sorted.length+")"}`;
+  sorted.forEach(r=>{ const c=riderChip(r); if(riderPlaced(r.id)) c.classList.add("placed"); pu.appendChild(c); });
   sorted.forEach(r=>{ const c=riderChip(r); if(riderPlaced(r.id)) c.classList.add("placed"); pr.appendChild(c); });
 }
 
