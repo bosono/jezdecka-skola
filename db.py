@@ -33,6 +33,28 @@ def init_db():
         conn.execute(
             "INSERT OR IGNORE INTO state (id, data, version, updated_at) VALUES (1, NULL, 0, NULL)"
         )
+        row = conn.execute("SELECT data FROM state WHERE id = 1").fetchone()
+        if row is not None and not row["data"]:
+            seed = _load_seed()
+            if seed is not None:
+                now = datetime.now(timezone.utc).isoformat()
+                conn.execute(
+                    "UPDATE state SET data = ?, version = 1, updated_at = ? WHERE id = 1",
+                    (json.dumps(seed, ensure_ascii=False), now),
+                )
+
+
+def _load_seed():
+    path = os.environ.get(
+        "SEED_PATH", os.path.join(os.path.dirname(__file__), "seed.json")
+    )
+    if not os.path.exists(path):
+        return None
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return None
 
 
 def get_state():

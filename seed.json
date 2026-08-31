@@ -1,0 +1,1451 @@
+{
+ "assignments": [
+  {
+   "horse": "h1",
+   "regular": false,
+   "rider": null,
+   "slot": "s1"
+  },
+  {
+   "horse": "h2",
+   "regular": true,
+   "rider": null,
+   "slot": "s1"
+  },
+  {
+   "horse": "h3",
+   "regular": false,
+   "rider": null,
+   "slot": "s1"
+  },
+  {
+   "horse": "h4",
+   "regular": false,
+   "rider": null,
+   "slot": "s1"
+  },
+  {
+   "horse": "h5",
+   "regular": false,
+   "rider": null,
+   "slot": "s1"
+  },
+  {
+   "horse": "h6",
+   "regular": false,
+   "rider": null,
+   "slot": "s2"
+  },
+  {
+   "horse": "h7",
+   "regular": false,
+   "rider": null,
+   "slot": "s2"
+  },
+  {
+   "horse": "h8",
+   "regular": false,
+   "rider": null,
+   "slot": "s2"
+  },
+  {
+   "horse": "h9",
+   "regular": false,
+   "rider": null,
+   "slot": "s2"
+  },
+  {
+   "horse": "h10",
+   "regular": false,
+   "rider": null,
+   "slot": "s2"
+  },
+  {
+   "horse": "h11",
+   "regular": false,
+   "rider": null,
+   "slot": "s3"
+  },
+  {
+   "horse": "h8",
+   "regular": false,
+   "rider": null,
+   "slot": "s3"
+  },
+  {
+   "horse": "h9",
+   "regular": false,
+   "rider": null,
+   "slot": "s3"
+  },
+  {
+   "horse": "h10",
+   "regular": false,
+   "rider": null,
+   "slot": "s3"
+  },
+  {
+   "horse": "h7",
+   "regular": false,
+   "rider": null,
+   "slot": "s3"
+  },
+  {
+   "horse": "h1",
+   "regular": false,
+   "rider": null,
+   "slot": "s4"
+  },
+  {
+   "horse": "h2",
+   "regular": false,
+   "rider": null,
+   "slot": "s4"
+  },
+  {
+   "horse": "h3",
+   "regular": false,
+   "rider": null,
+   "slot": "s4"
+  },
+  {
+   "horse": "h12",
+   "regular": false,
+   "rider": null,
+   "slot": "s4"
+  },
+  {
+   "horse": "h4",
+   "regular": false,
+   "rider": null,
+   "slot": "s4"
+  },
+  {
+   "horse": "h5",
+   "regular": false,
+   "rider": null,
+   "slot": "s4"
+  },
+  {
+   "horse": "h7",
+   "regular": false,
+   "rider": null,
+   "slot": "s5"
+  },
+  {
+   "horse": "h6",
+   "regular": false,
+   "rider": null,
+   "slot": "s5"
+  },
+  {
+   "horse": "h8",
+   "regular": false,
+   "rider": "rvqdb1d",
+   "slot": "s5"
+  },
+  {
+   "horse": "h9",
+   "regular": false,
+   "rider": null,
+   "slot": "s5"
+  },
+  {
+   "horse": "h10",
+   "regular": false,
+   "rider": null,
+   "slot": "s5"
+  },
+  {
+   "horse": "h1",
+   "regular": false,
+   "rider": null,
+   "slot": "s6"
+  },
+  {
+   "horse": "h2",
+   "regular": false,
+   "rider": null,
+   "slot": "s6"
+  },
+  {
+   "horse": "h3",
+   "regular": false,
+   "rider": null,
+   "slot": "s6"
+  },
+  {
+   "horse": "h12",
+   "regular": false,
+   "rider": null,
+   "slot": "s6"
+  },
+  {
+   "horse": "h11",
+   "regular": false,
+   "rider": null,
+   "slot": "s6"
+  },
+  {
+   "horse": "h7",
+   "regular": false,
+   "rider": null,
+   "slot": "s7"
+  },
+  {
+   "horse": "h6",
+   "regular": false,
+   "rider": null,
+   "slot": "s7"
+  },
+  {
+   "horse": "h11",
+   "regular": false,
+   "rider": null,
+   "slot": "s7"
+  },
+  {
+   "horse": "h1",
+   "regular": false,
+   "rider": null,
+   "slot": "s7"
+  },
+  {
+   "horse": "h5",
+   "regular": false,
+   "rider": null,
+   "slot": "s7"
+  },
+  {
+   "horse": "h3",
+   "regular": false,
+   "rider": null,
+   "slot": "s8"
+  },
+  {
+   "horse": "h1",
+   "regular": false,
+   "rider": null,
+   "slot": "s8"
+  },
+  {
+   "horse": "h9",
+   "regular": false,
+   "rider": null,
+   "slot": "s8"
+  },
+  {
+   "horse": "h10",
+   "regular": false,
+   "rider": null,
+   "slot": "s8"
+  },
+  {
+   "horse": "h8",
+   "regular": false,
+   "rider": null,
+   "slot": "s8"
+  },
+  {
+   "horse": "h11",
+   "regular": false,
+   "rider": null,
+   "slot": "s9"
+  },
+  {
+   "horse": "h2",
+   "regular": false,
+   "rider": null,
+   "slot": "s9"
+  },
+  {
+   "horse": "h4",
+   "regular": false,
+   "rider": null,
+   "slot": "s9"
+  },
+  {
+   "horse": "h7",
+   "regular": false,
+   "rider": null,
+   "slot": "s10"
+  },
+  {
+   "horse": "h6",
+   "regular": false,
+   "rider": null,
+   "slot": "s10"
+  },
+  {
+   "horse": "h8",
+   "regular": false,
+   "rider": null,
+   "slot": "s10"
+  },
+  {
+   "horse": "h9",
+   "regular": false,
+   "rider": null,
+   "slot": "s10"
+  },
+  {
+   "horse": "h10",
+   "regular": false,
+   "rider": null,
+   "slot": "s10"
+  },
+  {
+   "horse": "h11",
+   "regular": false,
+   "rider": null,
+   "slot": "s11"
+  },
+  {
+   "horse": "h2",
+   "regular": false,
+   "rider": null,
+   "slot": "s11"
+  },
+  {
+   "horse": "h3",
+   "regular": false,
+   "rider": null,
+   "slot": "s11"
+  },
+  {
+   "horse": "h12",
+   "regular": false,
+   "rider": null,
+   "slot": "s11"
+  },
+  {
+   "horse": "h4",
+   "regular": false,
+   "rider": null,
+   "slot": "s11"
+  },
+  {
+   "horse": "h5",
+   "regular": false,
+   "rider": null,
+   "slot": "s11"
+  },
+  {
+   "horse": "h7",
+   "regular": false,
+   "rider": null,
+   "slot": "s12"
+  },
+  {
+   "horse": "h6",
+   "regular": false,
+   "rider": null,
+   "slot": "s12"
+  },
+  {
+   "horse": "h8",
+   "regular": false,
+   "rider": null,
+   "slot": "s12"
+  },
+  {
+   "horse": "h9",
+   "regular": false,
+   "rider": null,
+   "slot": "s12"
+  },
+  {
+   "horse": "h10",
+   "regular": false,
+   "rider": null,
+   "slot": "s12"
+  },
+  {
+   "horse": "h1",
+   "regular": false,
+   "rider": null,
+   "slot": "s13"
+  },
+  {
+   "horse": "h2",
+   "regular": false,
+   "rider": null,
+   "slot": "s13"
+  },
+  {
+   "horse": "h3",
+   "regular": false,
+   "rider": null,
+   "slot": "s13"
+  },
+  {
+   "horse": "h12",
+   "regular": false,
+   "rider": null,
+   "slot": "s13"
+  },
+  {
+   "horse": "h11",
+   "regular": false,
+   "rider": null,
+   "slot": "s13"
+  },
+  {
+   "horse": "h11",
+   "regular": false,
+   "rider": null,
+   "slot": "s15"
+  },
+  {
+   "horse": "h2",
+   "regular": false,
+   "rider": null,
+   "slot": "s15"
+  },
+  {
+   "horse": "h3",
+   "regular": false,
+   "rider": null,
+   "slot": "s15"
+  },
+  {
+   "horse": "h1",
+   "regular": false,
+   "rider": null,
+   "slot": "s15"
+  },
+  {
+   "horse": "h4",
+   "regular": false,
+   "rider": null,
+   "slot": "s15"
+  },
+  {
+   "horse": "h5",
+   "regular": false,
+   "rider": null,
+   "slot": "s15"
+  },
+  {
+   "horse": "h11",
+   "regular": false,
+   "rider": null,
+   "slot": "s16"
+  },
+  {
+   "horse": "h2",
+   "regular": false,
+   "rider": null,
+   "slot": "s16"
+  },
+  {
+   "horse": "h3",
+   "regular": false,
+   "rider": null,
+   "slot": "s16"
+  },
+  {
+   "horse": "h1",
+   "regular": false,
+   "rider": null,
+   "slot": "s16"
+  },
+  {
+   "horse": "h4",
+   "regular": false,
+   "rider": null,
+   "slot": "s16"
+  },
+  {
+   "horse": "h5",
+   "regular": false,
+   "rider": null,
+   "slot": "s16"
+  },
+  {
+   "horse": "h7",
+   "regular": false,
+   "rider": null,
+   "slot": "s17"
+  },
+  {
+   "horse": "h6",
+   "regular": false,
+   "rider": null,
+   "slot": "s17"
+  },
+  {
+   "horse": "h10",
+   "regular": false,
+   "rider": null,
+   "slot": "s17"
+  },
+  {
+   "horse": "h8",
+   "regular": false,
+   "rider": null,
+   "slot": "s17"
+  },
+  {
+   "horse": "h9",
+   "regular": false,
+   "rider": null,
+   "slot": "s17"
+  },
+  {
+   "horse": "h12",
+   "regular": false,
+   "rider": null,
+   "slot": "s19"
+  },
+  {
+   "horse": "h7",
+   "regular": false,
+   "rider": null,
+   "slot": "s19"
+  },
+  {
+   "horse": "h9",
+   "regular": false,
+   "rider": null,
+   "slot": "s19"
+  },
+  {
+   "horse": "h10",
+   "regular": false,
+   "rider": null,
+   "slot": "s19"
+  },
+  {
+   "horse": "h4",
+   "regular": false,
+   "rider": null,
+   "slot": "s19"
+  },
+  {
+   "horse": "h5",
+   "regular": false,
+   "rider": null,
+   "slot": "s19"
+  },
+  {
+   "slot": "sja0bof",
+   "horse": "h1",
+   "rider": null,
+   "regular": false
+  }
+ ],
+ "horses": [
+  {
+   "breed": "",
+   "disc": {
+    "skup": 1
+   },
+   "id": "h1",
+   "maxDay": 2,
+   "maxHours": 9,
+   "maxWeek": 9,
+   "name": "Dally",
+   "pony": false,
+   "restDays": []
+  },
+  {
+   "breed": "",
+   "disc": {
+    "skup": 1
+   },
+   "id": "h2",
+   "maxDay": 2,
+   "maxHours": 8,
+   "maxWeek": 8,
+   "name": "Rubín",
+   "pony": false,
+   "restDays": []
+  },
+  {
+   "breed": "",
+   "disc": {
+    "skup": 1
+   },
+   "id": "h3",
+   "maxDay": 2,
+   "maxHours": 8,
+   "maxWeek": 8,
+   "name": "Adélka",
+   "pony": false,
+   "restDays": []
+  },
+  {
+   "breed": "",
+   "disc": {
+    "skup": 1
+   },
+   "id": "h4",
+   "maxDay": 2,
+   "maxHours": 7,
+   "maxWeek": 8,
+   "name": "Sargas",
+   "pony": true,
+   "restDays": []
+  },
+  {
+   "breed": "",
+   "disc": {
+    "skup": 1
+   },
+   "id": "h5",
+   "maxDay": 2,
+   "maxHours": 7,
+   "maxWeek": 8,
+   "name": "Charmed",
+   "pony": true,
+   "restDays": []
+  },
+  {
+   "breed": "",
+   "disc": {
+    "komb": 1,
+    "skok": 1,
+    "skup": 1
+   },
+   "id": "h6",
+   "maxDay": 2,
+   "maxHours": 8,
+   "maxWeek": 8,
+   "name": "Fatra",
+   "pony": false,
+   "restDays": []
+  },
+  {
+   "breed": "",
+   "disc": {
+    "kaval": 1,
+    "komb": 1,
+    "skok": 1,
+    "skup": 1
+   },
+   "id": "h7",
+   "maxDay": 2,
+   "maxHours": 8,
+   "maxWeek": 8,
+   "name": "Klára",
+   "pony": false,
+   "restDays": []
+  },
+  {
+   "breed": "",
+   "disc": {
+    "kaval": 1,
+    "komb": 1,
+    "skok": 1,
+    "skup": 1
+   },
+   "id": "h8",
+   "maxDay": 2,
+   "maxHours": 8,
+   "maxWeek": 8,
+   "name": "Laila",
+   "pony": false,
+   "restDays": []
+  },
+  {
+   "breed": "",
+   "disc": {
+    "kaval": 1,
+    "komb": 1,
+    "skok": 1,
+    "skup": 1
+   },
+   "id": "h9",
+   "maxDay": 2,
+   "maxHours": 8,
+   "maxWeek": 8,
+   "name": "Rebel",
+   "pony": false,
+   "restDays": []
+  },
+  {
+   "breed": "",
+   "disc": {
+    "kaval": 1,
+    "komb": 1,
+    "skok": 1,
+    "skup": 1
+   },
+   "id": "h10",
+   "maxDay": 2,
+   "maxHours": 8,
+   "maxWeek": 8,
+   "name": "Róza",
+   "pony": false,
+   "restDays": []
+  },
+  {
+   "breed": "",
+   "disc": {
+    "kaval": 1,
+    "skup": 1
+   },
+   "id": "h11",
+   "maxDay": 2,
+   "maxHours": 8,
+   "maxWeek": 8,
+   "name": "Lady",
+   "pony": false,
+   "restDays": []
+  },
+  {
+   "breed": "",
+   "disc": {
+    "skup": 1
+   },
+   "id": "h12",
+   "maxDay": 2,
+   "maxHours": 8,
+   "maxWeek": 8,
+   "name": "Sikky",
+   "pony": false,
+   "restDays": []
+  }
+ ],
+ "riders": [
+  {
+   "contact": "",
+   "id": "re1yl3f",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Alena Švihálková",
+   "pref": [
+    "h8"
+   ],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "rhqpl6i",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Alexandra Lille",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "rvqdb1d",
+   "level": "zacatecnik",
+   "mounts": {
+    "pony": true,
+    "horse": true
+   },
+   "name": "Amálie Paulová",
+   "pref": [
+    "h8"
+   ],
+   "want": [
+    "s11"
+   ]
+  },
+  {
+   "contact": "",
+   "id": "rccv3a9",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Antonín Martinásek",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "rxhjkcx",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Barbora Šajdlerová",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "r500lc3",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Beáta Bartáková",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "rk08zmm",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "David Studnička",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "rj5xtqa",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Diana Studýnková",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "rqwu8du",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Dominika Pešková",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "rppcerz",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Duda Pascari Paula",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "rjl4on6",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Edita Petríková",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "rwwmf8r",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Elisabeth Vejnar",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "r5xh7mk",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Eliška Matalová",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "rkdlwau",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Ella Fryčková",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "r44btht",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Gulzhan Abdrakhmanova",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "r444w99",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Isabela Studená",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "reg7sob",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Jana Skalníková",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "r6bdv0e",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Julie Dočkalová",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "rg8z96j",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Karolina Dědková",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "rr6cchc",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Kateřina Filová",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "r78qird",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Kateřina Šestáková",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "r5wvn4w",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Kateřina Švihálková",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "rc82hbn",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Klára Dvořáková",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "r9oykzp",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Kája Brabcová",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "r3qkzg7",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Laura Elsnerová",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "r4436df",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Lilian Štěpánková",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "rjzp7mn",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Mia Veselá",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "raqz0cp",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Natálie Novotná",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "rhskeyg",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Nela Franzová",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "rljyvw2",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Nikol Holásková",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "rcmjxlz",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Nikol Studničková",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "rgrgz15",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Pavel Prachař",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "rem2iri",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Renata Tihonová",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "r28o52v",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Sabina Ryvolová",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "rry864y",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Simona Štůlová",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "rv4i6rk",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Stella Eliška Kosíková",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "rytzv26",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Tereza Vávrová",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "r9ehhd1",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Veronika Prokešová",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "rlims41",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Veronika Srbecká",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "r4o0wln",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Viera Kolářová",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "rp2qz08",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Zuzana Martincová",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "r91s6i5",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Jan Musil",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "rcs8b5v",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": true,
+    "pony": true
+   },
+   "name": "Richard Musil",
+   "pref": [],
+   "want": []
+  },
+  {
+   "contact": "",
+   "id": "rd64k43",
+   "level": "zacatecnik",
+   "mounts": {
+    "horse": false,
+    "pony": false
+   },
+   "name": "Alena Musilová",
+   "pref": [
+    "h2"
+   ],
+   "want": []
+  }
+ ],
+ "slots": [
+  {
+   "cap": 5,
+   "coach": "Martina",
+   "day": 0,
+   "from": "16:00",
+   "id": "s1",
+   "place": "",
+   "to": "17:00",
+   "type": "skup"
+  },
+  {
+   "cap": 5,
+   "coach": "Martina",
+   "day": 0,
+   "from": "17:00",
+   "id": "s2",
+   "place": "",
+   "to": "18:00",
+   "type": "skup"
+  },
+  {
+   "cap": 5,
+   "coach": "Martina",
+   "day": 0,
+   "from": "18:15",
+   "id": "s3",
+   "place": "",
+   "to": "19:15",
+   "type": "kaval"
+  },
+  {
+   "cap": 6,
+   "coach": "Veronika",
+   "day": 1,
+   "from": "16:00",
+   "id": "s4",
+   "place": "",
+   "to": "17:00",
+   "type": "skup"
+  },
+  {
+   "cap": 5,
+   "coach": "Veronika",
+   "day": 1,
+   "from": "17:00",
+   "id": "s5",
+   "place": "",
+   "to": "18:00",
+   "type": "skup"
+  },
+  {
+   "cap": 5,
+   "coach": "Veronika",
+   "day": 1,
+   "from": "18:00",
+   "id": "s6",
+   "place": "",
+   "to": "19:00",
+   "type": "skup"
+  },
+  {
+   "cap": 5,
+   "coach": "Veronika",
+   "day": 2,
+   "from": "16:00",
+   "id": "s7",
+   "place": "",
+   "to": "17:00",
+   "type": "skup"
+  },
+  {
+   "cap": 5,
+   "coach": "Veronika",
+   "day": 2,
+   "from": "17:00",
+   "id": "s8",
+   "place": "",
+   "to": "18:00",
+   "type": "skup"
+  },
+  {
+   "cap": 3,
+   "coach": "Veronika",
+   "day": 2,
+   "from": "18:00",
+   "id": "s9",
+   "place": "",
+   "to": "19:00",
+   "type": "souk"
+  },
+  {
+   "cap": 5,
+   "coach": "Veronika",
+   "day": 2,
+   "from": "19:00",
+   "id": "s10",
+   "place": "",
+   "to": "20:00",
+   "type": "skok"
+  },
+  {
+   "cap": 6,
+   "coach": "Veronika",
+   "day": 3,
+   "from": "16:00",
+   "id": "s11",
+   "place": "",
+   "to": "17:00",
+   "type": "skup"
+  },
+  {
+   "cap": 5,
+   "coach": "Veronika",
+   "day": 3,
+   "from": "17:00",
+   "id": "s12",
+   "place": "",
+   "to": "18:00",
+   "type": "skup"
+  },
+  {
+   "cap": 5,
+   "coach": "Veronika",
+   "day": 3,
+   "from": "18:00",
+   "id": "s13",
+   "place": "",
+   "to": "19:00",
+   "type": "skup"
+  },
+  {
+   "cap": 1,
+   "coach": "Eva",
+   "day": 4,
+   "from": "15:00",
+   "id": "s14",
+   "place": "",
+   "to": "16:00",
+   "type": "souk"
+  },
+  {
+   "cap": 6,
+   "coach": "Eva",
+   "day": 4,
+   "from": "16:00",
+   "id": "s15",
+   "place": "",
+   "to": "17:00",
+   "type": "skup"
+  },
+  {
+   "cap": 6,
+   "coach": "Eva",
+   "day": 4,
+   "from": "17:00",
+   "id": "s16",
+   "place": "",
+   "to": "18:00",
+   "type": "skup"
+  },
+  {
+   "cap": 5,
+   "coach": "Áňa",
+   "day": 4,
+   "from": "18:00",
+   "id": "s17",
+   "place": "",
+   "to": "19:00",
+   "type": "komb"
+  },
+  {
+   "cap": 1,
+   "coach": "",
+   "day": 6,
+   "from": "09:00",
+   "id": "s18",
+   "place": "",
+   "to": "10:00",
+   "type": "souk"
+  },
+  {
+   "cap": 6,
+   "coach": "",
+   "day": 6,
+   "from": "10:00",
+   "id": "s19",
+   "place": "",
+   "to": "11:00",
+   "type": "skup"
+  },
+  {
+   "cap": 5,
+   "coach": "Veronika",
+   "day": 3,
+   "from": "19:00",
+   "id": "sja0bof",
+   "place": "",
+   "to": "20:00",
+   "type": "skup"
+  }
+ ]
+}
