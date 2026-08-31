@@ -3,3 +3,10 @@ __pycache__/
 *.pyc
 .DS_Store
 skola.db
+.env
+skola.db-journal
+backups/
+__pycache__/
+*.pyc
+venv/
+.venv/
