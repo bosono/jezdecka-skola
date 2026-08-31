@@ -36,3 +36,26 @@ python3 -m http.server 8777
 - **Fáze 3 — nasazení.** GitHub repo (možná pod účtem Bosono) + hosting.
 
 Návrh: `docs/superpowers/specs/2026-08-30-jezdecka-skola-design.md`
+
+## Fáze 2 — backend (Flask + SQLite)
+
+### Lokální běh
+```bash
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env   # vyplň SECRET_KEY a APP_PASSWORD
+export $(grep -v '^#' .env | xargs)
+gunicorn app:app --bind 127.0.0.1:8777
+# http://127.0.0.1:8777/
+```
+
+### Deploy na Railway
+1. Vytvoř projekt z tohoto GitHub repa (New Project → Deploy from GitHub repo).
+2. **Variables** nastav: `SECRET_KEY` (náhodný řetězec), `APP_PASSWORD` (heslo do appky), `DB_PATH=/data/skola.db`, `BACKUP_DIR=/data/backups`, `COOKIE_SECURE=1`.
+3. **Volume:** přidej Volume mountnutý na `/data` (perzistence SQLite napříč deployi).
+4. Railway detekuje `Procfile` a `requirements.txt` a spustí `gunicorn app:app`.
+5. Data se seedují z ukázkového rozpisu při prvním otevření appky (nebo tlačítkem „Obnovit ukázková data").
+
+Zálohy: každý zápis ukládá časovanou JSON kopii do `BACKUP_DIR` (posledních 30).
+
+SuperSaaS env klíče (`SUPERSAAS_API_KEY`, `SUPERSAAS_SCHEDULE_ID`, …) jsou volitelné — bez nich funguje odeslání do rezervačního systému jen jako náhled (dry-run) a nic se reálně nezapíše.
