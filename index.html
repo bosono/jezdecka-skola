@@ -147,6 +147,15 @@
 </style>
 </head>
 <body>
+<div id="loginOverlay" style="position:fixed;inset:0;background:#f5f2ec;display:none;align-items:center;justify-content:center;z-index:100">
+  <form id="loginForm" style="background:#fff;padding:28px;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.2);display:flex;flex-direction:column;gap:12px;min-width:280px">
+    <h2 style="margin:0 0 4px">🐴 Jezdecká škola</h2>
+    <label style="font-size:13px;color:#7d7468">Heslo</label>
+    <input type="password" id="loginPw" autofocus style="padding:10px;border:1px solid #e4ddd2;border-radius:8px;font:inherit">
+    <div id="loginErr" style="color:#b3543f;font-size:13px;display:none">Špatné heslo.</div>
+    <button type="submit" style="background:#7a5c3e;color:#fff;border:0;padding:10px;border-radius:9px;cursor:pointer;font:inherit">Přihlásit</button>
+  </form>
+</div>
 <header>
   <h1>🐴 Jezdecká škola</h1>
   <nav>
@@ -170,6 +179,12 @@
       <button class="btn sm ghost" id="newWeek" title="Uvolní jednorázově přiřazené jezdce, pravidelné (📌) nechá">Nový týden</button>
       <label style="font-size:12.5px;display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="showEmpty"> zobrazit prázdné dny</label>
       <span class="muted" style="font-size:12.5px">konkrétní datumy a výjimky – další fáze</span>
+      <span id="ssBar" style="display:none;margin-left:auto;align-items:center;gap:10px">
+        <label style="font-size:12.5px;display:flex;align-items:center;gap:6px">Týden od
+          <input type="date" id="ssWeek" style="padding:5px 8px;border:1px solid #e4ddd2;border-radius:8px;font:inherit"></label>
+        <button class="btn sm ghost" id="ssPreview" title="Náhled, co by se zapsalo do SuperSaaS">Náhled SuperSaaS</button>
+        <button class="btn sm" id="ssPush" title="Odeslat celý týden do rezervačního systému">Odeslat týden →</button>
+      </span>
     </div>
     <div class="layout">
       <aside class="pool">
@@ -286,13 +301,16 @@ function demoData(){
   slot(4,"18:00","19:00","komb","Áňa",["Klára","Fatra","Ryzka","Laila","Šiml"]);
   slot(6,"09:00","10:00","souk","",[]);
   slot(6,"10:00","11:00","skup","",["Sikky","Klára","Šiml","Ryzka","Sargas","Charmed"]);
-  const riders=[]; // veřejná ukázka: prázdná DB jezdců, koně + rozvrh zůstávají
+  // Výchozí stav = reálný týdenní rozvrh + koně nasazení do lekcí (šablona prvního týdne).
+  // Databáze jezdců začíná prázdná — naplníš ji v záložce Jezdci.
+  const riders=[];
   return {horses:H,slots:SL,assignments:AS,riders};
 }
 
-let S=load();
-function load(){ try{const raw=localStorage.getItem("jezdecka_skola_v9"); if(raw) return JSON.parse(raw);}catch(e){} return demoData(); }
-function save(){ try{localStorage.setItem("jezdecka_skola_v9",JSON.stringify(S));}catch(e){} }
+const LSKEY="jezdecka_skola_pub_v1";
+let S=loadLS();
+function loadLS(){ try{const r=localStorage.getItem(LSKEY); if(r) return JSON.parse(r);}catch(e){} return demoData(); }
+function save(){ try{localStorage.setItem(LSKEY,JSON.stringify(S)); }catch(e){} }
 function uid(p){ return p+Math.random().toString(36).slice(2,8); }
 const byId=(arr,id)=>arr.find(x=>x.id===id);
 const riderName=id=>(byId(S.riders,id)||{}).name||"?";
@@ -319,9 +337,9 @@ function bookingIssues(slot,bk){
   }
   if(bk.rider){
     const r=byId(S.riders,bk.rider);
-    if(r&&LEVEL_RANK[r.level]<LEVEL_RANK[t.minLevel]) out.warn.push(`${r.name.split(" ")[0]}: nízká úroveň na tuto lekci`);
-    if(r&&h&&!canRide(r,h)) out.bad.push(`${r.name.split(" ")[0]}: ${h.pony?"nejezdí na pony":"PONY jezdec nemůže na koně"} (${h.name})`);
-    if(S.assignments.some(a=>a.rider===bk.rider&&a.slot!==slot.id&&overlap(byId(S.slots,a.slot),slot))) out.bad.push(`${riderName(bk.rider).split(" ")[0]}: kolize s jinou lekcí`);
+    if(r&&LEVEL_RANK[r.level]<LEVEL_RANK[t.minLevel]) out.warn.push(`${r.name}: nízká úroveň na tuto lekci`);
+    if(r&&h&&!canRide(r,h)) out.bad.push(`${r.name}: ${h.pony?"nejezdí na pony":"PONY jezdec nemůže na koně"} (${h.name})`);
+    if(S.assignments.some(a=>a.rider===bk.rider&&a.slot!==slot.id&&overlap(byId(S.slots,a.slot),slot))) out.bad.push(`${riderName(bk.rider)}: kolize s jinou lekcí`);
   }
   return out;
 }
@@ -529,7 +547,7 @@ function renderLesson(sl){
     const c=document.createElement("span");
     c.className="hchip"+(iss.bad.length?" bad":iss.warn.length?" warn":"")+(a.rider?"":" free");
     c.innerHTML=`<span>${h?esc(h.name):"?"}${h&&h.pony?'<span class="pony">p</span>':''}</span>`+
-      (a.rider?`<span class="rd">${esc(riderName(a.rider).split(" ")[0])}${a.regular?'<span class="pin" title="Pravidelně">📌</span>':''}</span>`:`<span class="rd empty">volný</span>`)+
+      (a.rider?`<span class="rd">${esc(riderName(a.rider))}${a.regular?'<span class="pin" title="Pravidelně">📌</span>':''}</span>`:`<span class="rd empty">volný</span>`)+
       `<span class="x" title="Odebrat">×</span>`;
     c.onclick=e=>{ if(e.target.classList.contains("x")){ S.assignments=S.assignments.filter(x=>x!==a); save(); renderSched(); renderHorses(); renderRiders(); } else editBooking(sl,a); };
     c.ondragover=e=>{ if(dragKind==="rider"||dragKind==="pair"){ e.preventDefault(); c.classList.add("dropr"); } };
@@ -546,7 +564,7 @@ function renderLesson(sl){
   const wanters=S.riders.filter(r=>(r.want||[]).includes(sl.id)&&!rows.some(a=>a.rider===r.id));
   if(wanters.length){
     const d=document.createElement("div"); d.className="ldemand";
-    d.textContent="chce sem: "+wanters.map(r=>r.name.split(" ")[0]).join(", ");
+    d.textContent="chce sem: "+wanters.map(r=>r.name).join(", ");
     el.appendChild(d);
   }
   if(allIssues.length){
@@ -609,7 +627,7 @@ function editBooking(sl,bk){
 /* ---------- pool ---------- */
 function riderChip(r){
   const c=document.createElement("div"); c.className="chip rider"; c.draggable=true;
-  c.textContent=r.name.split(" ")[0]+" "+((r.name.split(" ")[1]||"")[0]||"")+".";
+  c.textContent=r.name;
   const wl=(r.want||[]).map(sid=>byId(S.slots,sid)).filter(Boolean).sort((a,b)=>a.day-b.day||toMin(a.from)-toMin(b.from));
   c.title=r.name+" — "+LEVELS[r.level]+(wl.length?"\nchce: "+wl.map(s=>DAYS[s.day]+" "+s.from).join(", "):"");
   c.ondragstart=()=>{dragKind="rider";dragId=r.id;markTargets();}; c.ondragend=()=>{dragKind=null;dragId=null;clearTargets();};
@@ -622,7 +640,7 @@ function renderPools(){
   sorted.forEach(r=>{
     (r.pref||[]).forEach(hid=>{ const h=horse(hid); if(!h)return;
       const c=document.createElement("div"); c.className="chip pair"; c.draggable=true;
-      c.textContent=r.name.split(" ")[0]+" + "+h.name;
+      c.textContent=r.name+" + "+h.name;
       c.title=`${r.name} (${LEVELS[r.level]}) + ${h.name}`;
       c.ondragstart=()=>{dragKind="pair";dragPair={rider:r.id,horse:hid};markTargets();};
       c.ondragend=()=>{dragKind=null;dragPair=null;clearTargets();};
@@ -697,7 +715,7 @@ document.getElementById("newWeek").onclick=()=>{
   S.assignments.forEach(a=>{ if(a.rider&&!a.regular) a.rider=null; });
   save(); renderAll();
 };
-document.getElementById("resetBtn").onclick=()=>{ if(!confirm("Obnovit výchozí rozpis? Smaže všechny jezdce i přiřazení a vrátí prázdný týden (koně a lekce zůstanou)."))return; S=demoData(); save(); renderAll(); };
+document.getElementById("resetBtn").onclick=()=>{ if(!confirm("Obnovit výchozí rozpis? Smaže VŠECHNY jezdce i jejich přiřazení a vrátí prázdný první týden (koně a lekce zůstanou)."))return; S=demoData(); save(); renderAll(); };
 function renderAll(){ renderSched(); renderHorses(); renderRiders(); }
 renderAll();
 </script>
