@@ -179,6 +179,11 @@
       <button class="btn sm ghost" id="newWeek" title="Uvolní jednorázově přiřazené jezdce, pravidelné (📌) nechá">Nový týden</button>
       <label style="font-size:12.5px;display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="showEmpty"> zobrazit prázdné dny</label>
       <span class="muted" style="font-size:12.5px">konkrétní datumy a výjimky – další fáze</span>
+      <span style="flex:1"></span>
+      <label style="font-size:12.5px;display:flex;align-items:center;gap:6px">Týden od
+        <input type="date" id="ssWeek" style="padding:5px 8px;border:1px solid #e4ddd2;border-radius:8px;font:inherit"></label>
+      <button class="btn sm ghost" id="ssPreview" title="Náhled, co by se zapsalo do SuperSaaS">Náhled SuperSaaS</button>
+      <button class="btn sm" id="ssPush" title="Odeslat celý týden do rezervačního systému">Odeslat týden →</button>
     </div>
     <div class="layout">
       <aside class="pool">
@@ -747,7 +752,7 @@ async function loadState(){
   STATE_VERSION=st.version;
   if(st.data){ S=st.data; }
   else { S=demoData(); await apiSave(); }
-  hideLogin(); renderAll(); return true;
+  hideLogin(); ssInit(); renderAll(); return true;
 }
 
 document.getElementById("loginForm").onsubmit=async e=>{
@@ -759,6 +764,36 @@ document.getElementById("loginForm").onsubmit=async e=>{
 };
 
 async function boot(){ await loadState(); }
+function mondayOfThisWeek(){
+  const d=new Date(); const day=(d.getDay()+6)%7; d.setDate(d.getDate()-day);
+  return d.toISOString().slice(0,10);
+}
+async function ssPush(dryRun){
+  const wk=document.getElementById("ssWeek").value;
+  if(!wk){ alert("Vyber pondělní datum týdne."); return; }
+  const resp=await fetch(BASE+"/api/supersaas/push",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({week_start:wk,days:null,dry_run:dryRun})});
+  if(resp.status===401){ showLogin(); return; }
+  if(!resp.ok){ alert("Chyba odeslání do SuperSaaS ("+resp.status+")."); return; }
+  const r=await resp.json();
+  if(r.dry_run){
+    const lines=r.bookings.map(b=>`${b.start.slice(0,16)} — ${b.full_name}`).join("\n")||"(žádné lekce)";
+    const note=r.configured?"":"\n\n⚠ SuperSaaS zatím není nakonfigurován (chybí API klíč) — jde jen o náhled.";
+    alert(`Náhled ${r.count} rezervací pro týden ${wk}:\n\n${lines}${note}`);
+  }else{
+    alert(`Odesláno do SuperSaaS: vytvořeno ${r.created}, smazáno ${r.deleted} (týden ${wk}).`);
+  }
+}
+async function ssInit(){
+  document.getElementById("ssWeek").value=mondayOfThisWeek();
+  const btn=document.getElementById("ssPush");
+  try{
+    const st=await (await fetch(BASE+"/api/supersaas/status")).json();
+    if(!st.configured){ btn.textContent="Odeslat týden (bez klíče)"; btn.title="SuperSaaS není nakonfigurován — funguje jen náhled"; }
+  }catch(e){}
+  document.getElementById("ssPreview").onclick=()=>ssPush(true);
+  btn.onclick=()=>{ if(confirm("Odeslat celý týden do SuperSaaS? Přepíše rezervace v daném rozsahu.")) ssPush(false); };
+}
 boot();
 </script>
 </body>
