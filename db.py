@@ -45,10 +45,10 @@ def init_db():
 
 
 def _load_seed():
-    path = os.environ.get(
-        "SEED_PATH", os.path.join(os.path.dirname(__file__), "seed.json")
-    )
-    if not os.path.exists(path):
+    # Opt-in only: seeding happens when SEED_PATH points at an existing file.
+    # Keeps a fresh DB empty by default (tests, local dev) unless explicitly asked.
+    path = os.environ.get("SEED_PATH")
+    if not path or not os.path.exists(path):
         return None
     try:
         with open(path, encoding="utf-8") as f:

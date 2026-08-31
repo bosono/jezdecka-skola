@@ -49,12 +49,21 @@ gunicorn app:app --bind 127.0.0.1:8777
 # http://127.0.0.1:8777/
 ```
 
-### Deploy na Railway
+### Deploy na Hetzner server (bosono) — Docker + Traefik
+
+Kompletní postup: [`deploy/DEPLOY.md`](deploy/DEPLOY.md). První nasazení přes IT
+(přidá službu do compose + DNS), další update kódu už Jarda sám přes rsync.
+V repu je `Dockerfile`, `gunicorn.conf.py` a hotový compose snippet
+[`deploy/docker-compose.snippet.yml`](deploy/docker-compose.snippet.yml).
+
+Prázdná DB se při startu naplní ze `seed.json`, když je nastaveno `SEED_PATH`
+(v produkčním compose `SEED_PATH=/app/seed.json`).
+
+### Deploy na Railway (alternativa)
 1. Vytvoř projekt z tohoto GitHub repa (New Project → Deploy from GitHub repo).
-2. **Variables** nastav: `SECRET_KEY` (náhodný řetězec), `APP_PASSWORD` (heslo do appky), `DB_PATH=/data/skola.db`, `BACKUP_DIR=/data/backups`, `COOKIE_SECURE=1`.
+2. **Variables** nastav: `SECRET_KEY`, `APP_PASSWORD`, `DB_PATH=/data/skola.db`, `BACKUP_DIR=/data/backups`, `SEED_PATH=/app/seed.json`, `COOKIE_SECURE=1`.
 3. **Volume:** přidej Volume mountnutý na `/data` (perzistence SQLite napříč deployi).
 4. Railway detekuje `Procfile` a `requirements.txt` a spustí `gunicorn app:app`.
-5. Data se seedují z ukázkového rozpisu při prvním otevření appky (nebo tlačítkem „Obnovit ukázková data").
 
 Zálohy: každý zápis ukládá časovanou JSON kopii do `BACKUP_DIR` (posledních 30).
 

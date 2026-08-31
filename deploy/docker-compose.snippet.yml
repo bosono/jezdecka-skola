@@ -1,0 +1,43 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Jezdecká škola — služba do /srv/bosono-app/docker-compose.yml
+# (vlož jako další službu vedle `melody-dashboard`)
+#
+# Vzor = melody-dashboard: bind-mount kódu z /home/jarda → Jarda updatuje přes rsync
+# bez zásahu IT. Navíc má Traefik label (vlastní subdoména) a datový volume pro SQLite.
+# Auth řeší sama appka (APP_PASSWORD), Authelia není potřeba.
+# ─────────────────────────────────────────────────────────────────────────────
+
+  jezdecka-skola:
+    image: jezdecka-skola:latest
+    container_name: jezdecka-skola
+    build: /home/jarda/jezdecka-skola          # docker compose build jezdecka-skola
+    restart: unless-stopped
+    volumes:
+      - /home/jarda/jezdecka-skola:/app         # kód (rsync workflow)
+      - jezdecka_skola_data:/data               # skola.db + zálohy (perzistence)
+    environment:
+      SECRET_KEY: "209735c9530bb5a8fc0b96a03c54f15a5761c71c2b96840479c2681e1cddd008"
+      APP_PASSWORD: "ZMEN-ME"                    # ⚠ nastavit heslo pro školu
+      DB_PATH: /data/skola.db
+      BACKUP_DIR: /data/backups
+      SEED_PATH: /app/seed.json                 # naplní prázdnou DB připravenými daty (44 jezdců)
+      COOKIE_SECURE: "1"
+      GUNICORN_RELOAD: "1"
+      TZ: Europe/Prague
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jezdecka-skola.rule=Host(`jezdecka.stratcore.cz`)"
+      - "traefik.http.routers.jezdecka-skola.entrypoints=websecure"
+      - "traefik.http.routers.jezdecka-skola.tls.certresolver=letsencrypt"
+      - "traefik.http.services.jezdecka-skola.loadbalancer.server.port=8000"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/api/ping').status==200 else 1)\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - traefik
+
+# do bloku `volumes:` na konci souboru přidat:
+#   jezdecka_skola_data:
+#     driver: local
