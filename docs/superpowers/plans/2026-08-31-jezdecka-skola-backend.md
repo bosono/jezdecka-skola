@@ -6,7 +6,9 @@
 
 **Architecture:** Aplikace má jeden sdílený dataset (celý objekt `S = {horses, riders, slots, assignments}`). Backend ho drží jako jeden JSON blob v SQLite (tabulka `state`, jeden řádek) s celočíselnou `version` pro optimistický zámek. Dvě chráněné operace: `GET /api/state` (načíst) a `PUT /api/state` (uložit s kontrolou verze). Frontend zůstává jeden soubor — mění se pouze `load()`/`save()` na `fetch` a přibývá přihlašovací overlay. Datová vrstva je izolovaná v `db.py`, takže pozdější přechod na Postgres je malá změna.
 
-**Tech Stack:** Python 3.11+, Flask 3.x, gunicorn (produkce), SQLite (stdlib `sqlite3`, bez ORM), pytest. Frontend beze změny stacku (vanilla JS v `index.html`).
+**Tech Stack:** Python 3.11+, Flask 3.x, gunicorn (produkce), SQLite (stdlib `sqlite3`, bez ORM), pytest. SuperSaaS klient přes stdlib `urllib` (bez nové závislosti). Frontend beze změny stacku (vanilla JS v `index.html`).
+
+**SuperSaaS (rezervační systém) — rozsah v tomto plánu:** Připravit kompletní kód napojení tak, aby fungoval bez klíčů v režimu **dry-run** (náhled toho, co by se zapsalo), a živý zápis se odemkl až po doplnění env klíčů. Push vždy zhmotní týdenní šablonu na konkrétní kalendářní týden (zadané pondělní datum) → SuperSaaS rezervace s reálnými `start`/`finish`. Podporuje odeslání jednoho dne i celého týdne; whole-week/day push je idempotentní (smaže rozsah a zapíše čistě). Nejasnost „30min sloty vs. 1 lekce = 1 rezervace" je řešena přepínačem `SUPERSAAS_SLOT_MINUTES`.
 
 ## Global Constraints
 
@@ -18,6 +20,9 @@
 - **Deploy:** Railway, SQLite na perzistentním volume mountnutém na `/data` (`DB_PATH=/data/skola.db`).
 - **Konkurence:** optimistický zámek přes `version`; poslední zapisující s neaktuální verzí dostane 409 a přenačte.
 - **DB env se čte za běhu (uvnitř funkcí), ne při importu** — kvůli testovatelnosti s dočasnou DB.
+- **SuperSaaS env:** `SUPERSAAS_API_KEY`, `SUPERSAAS_SCHEDULE_ID` (obojí povinné pro živý zápis), `SUPERSAAS_ACCOUNT` (volitelné, jen popisek), `SUPERSAAS_SLOT_MINUTES` (volitelné; prázdné = 1 rezervace na lekci, `30` = lekce rozsekaná na 30min bloky). Env se čte za běhu uvnitř funkcí.
+- **SuperSaaS bez klíčů = dry-run:** endpoint push bez nakonfigurovaných klíčů vrací jen náhled zhmotněných rezervací (nikdy neselže kvůli chybějícímu klíči). Živý zápis běží jen když `is_configured()`.
+- **SuperSaaS HTTP přes stdlib `urllib`** s injektovatelným `transport` callablem, aby testy běžely bez sítě i bez klíče.
 
 ---
 
@@ -25,9 +30,10 @@
 
 ```
 jezdecka-skola/
-  index.html          # MODIFY: load()/save() → API, login overlay, verze
+  index.html          # MODIFY: load()/save() → API, login overlay, verze; SuperSaaS toolbar
   db.py               # CREATE: SQLite state store (init_db, get_state, put_state, backup)
-  app.py              # CREATE: Flask app factory, auth, state API, servírování index.html
+  app.py              # CREATE: Flask app factory, auth, state API, SuperSaaS push, servírování index.html
+  supersaas.py        # CREATE: zhmotnění týdenní šablony → rezervace + HTTP klient (urllib)
   requirements.txt    # CREATE: flask, gunicorn
   Procfile            # CREATE: web: gunicorn app:app
   runtime.txt         # CREATE: python-3.11.x (Railway pin)
@@ -38,14 +44,16 @@ jezdecka-skola/
     test_db.py        # CREATE: unit testy db.py
     test_auth.py      # CREATE: testy login/logout/ochrany
     test_state.py     # CREATE: testy GET/PUT/konflikt/round-trip
+    test_supersaas.py # CREATE: testy zhmotnění týdne + klienta s fake transportem
   README.md           # MODIFY: sekce Fáze 2 – lokální běh + deploy Railway
   docs/superpowers/...
 ```
 
 **Zodpovědnosti:**
 - `db.py` — veškerá práce s SQLite a se soubory záloh. Nezná Flask.
-- `app.py` — HTTP vrstva: routy, session, autentizace, validace vstupu, servírování `index.html`. Data deleguje na `db.py`.
-- `index.html` — UI a in-memory model beze změny; persistence přes `fetch`.
+- `app.py` — HTTP vrstva: routy, session, autentizace, validace vstupu, servírování `index.html`. Data deleguje na `db.py`, SuperSaaS na `supersaas.py`.
+- `supersaas.py` — čistá transformace týdenní šablony na rezervace (`week_bookings`, `week_range`) + HTTP klient (`SuperSaasClient`, `client_from_env`, `is_configured`). Nezná Flask.
+- `index.html` — UI a in-memory model; persistence přes `fetch`; toolbar pro odeslání do SuperSaaS.
 
 ---
 
@@ -718,6 +726,12 @@ DB_PATH=./dev.db
 BACKUP_DIR=./backups
 # Na produkci (https) zapni Secure cookie:
 COOKIE_SECURE=0
+# SuperSaaS (rezervační systém) — doplň, až budou klíče; bez nich jede jen dry-run náhled:
+SUPERSAAS_API_KEY=
+SUPERSAAS_SCHEDULE_ID=
+SUPERSAAS_ACCOUNT=
+# Prázdné = 1 rezervace na lekci; 30 = lekce rozsekaná na 30min bloky:
+SUPERSAAS_SLOT_MINUTES=
 ```
 
 - [ ] **Step 4: Lokální smoke test gunicornu**
@@ -767,6 +781,567 @@ git commit -m "Deploy: Procfile, runtime, .env.example + README pro Railway"
 
 ---
 
+### Task 6: SuperSaaS — zhmotnění týdenní šablony na rezervace (čistá logika)
+
+**Files:**
+- Create: `supersaas.py`
+- Create: `tests/test_supersaas.py`
+
+**Interfaces:**
+- Produces:
+  - `supersaas.week_bookings(state: dict, week_start: date, days=None, slot_minutes=None) -> list[dict]` — zhmotní týdenní šablonu na konkrétní týden. `week_start` = datum pondělí (den index 0). `days` = iterable indexů 0–6 nebo `None` (celý týden). `slot_minutes=None` → jedna rezervace na lekci; int → rozsekání na bloky. Vrací seřazený seznam `{"day": int, "start": "YYYY-MM-DD HH:MM:SS", "finish": ..., "full_name": str}`.
+  - `supersaas.week_range(week_start: date, days=None) -> tuple[str, str]` — `(from, to)` řetězce ohraničující rozsah dat pro smazání/čtení.
+
+- [ ] **Step 1: Napsat padající testy čisté logiky**
+
+Create `tests/test_supersaas.py`:
+
+```python
+from datetime import date
+import supersaas
+
+
+STATE = {
+    "horses": [{"id": "h1", "name": "Dally", "pony": False},
+               {"id": "h2", "name": "Sargas", "pony": True}],
+    "riders": [{"id": "r1", "name": "Adéla Nováková"}],
+    "slots": [
+        {"id": "s1", "day": 0, "from": "16:00", "to": "17:00", "type": "skup", "coach": "Martina"},
+        {"id": "s2", "day": 2, "from": "19:00", "to": "20:00", "type": "skok", "coach": "Veronika"},
+    ],
+    "assignments": [
+        {"slot": "s1", "horse": "h1", "rider": "r1", "regular": True},
+        {"slot": "s1", "horse": "h2", "rider": None, "regular": False},
+    ],
+}
+MONDAY = date(2026, 8, 31)  # pondělí
+
+
+def test_week_bookings_whole_week_concrete_dates():
+    out = supersaas.week_bookings(STATE, MONDAY)
+    assert len(out) == 2
+    assert out[0]["start"] == "2026-08-31 16:00:00"
+    assert out[0]["finish"] == "2026-08-31 17:00:00"
+    # středa = pondělí + 2
+    assert out[1]["start"] == "2026-09-02 19:00:00"
+
+
+def test_week_bookings_full_name_has_label_and_mounts():
+    out = supersaas.week_bookings(STATE, MONDAY, days=[0])
+    assert "Skupinová" in out[0]["full_name"]
+    assert "Martina" in out[0]["full_name"]
+    assert "Dally" in out[0]["full_name"]
+
+
+def test_week_bookings_single_day_filter():
+    out = supersaas.week_bookings(STATE, MONDAY, days=[2])
+    assert len(out) == 1
+    assert out[0]["start"].startswith("2026-09-02")
+
+
+def test_week_bookings_slot_minutes_splits_lesson():
+    out = supersaas.week_bookings(STATE, MONDAY, days=[0], slot_minutes=30)
+    assert len(out) == 2  # 16:00-17:00 → dva 30min bloky
+    assert out[0]["start"] == "2026-08-31 16:00:00"
+    assert out[0]["finish"] == "2026-08-31 16:30:00"
+    assert out[1]["start"] == "2026-08-31 16:30:00"
+    assert out[1]["finish"] == "2026-08-31 17:00:00"
+
+
+def test_week_range_whole_week():
+    frm, to = supersaas.week_range(MONDAY)
+    assert frm == "2026-08-31 00:00:00"
+    assert to == "2026-09-07 00:00:00"
+```
+
+- [ ] **Step 2: Ověřit, že testy padají**
+
+Run: `python3 -m pytest tests/test_supersaas.py -v`
+Expected: FAIL — `ModuleNotFoundError: No module named 'supersaas'`.
+
+- [ ] **Step 3: Implementovat čistou logiku v supersaas.py**
+
+Create `supersaas.py`:
+
+```python
+import json
+import os
+import urllib.error
+import urllib.parse
+import urllib.request
+from datetime import date, datetime, time, timedelta
+
+TYPE_NAMES = {
+    "skup": "Skupinová",
+    "kaval": "Kavaletová",
+    "komb": "Kombinovaná",
+    "skok": "Skoková",
+    "souk": "Soukromá",
+}
+
+
+def _parse_time(t):
+    h, m = t.split(":")
+    return time(int(h), int(m))
+
+
+def _lesson_label(slot):
+    name = TYPE_NAMES.get(slot.get("type"), slot.get("type", ""))
+    coach = slot.get("coach")
+    return name + (f" ({coach})" if coach else "")
+
+
+def _lesson_mounts(slot, assignments, horses, riders):
+    parts = []
+    for a in assignments:
+        if a.get("slot") != slot["id"]:
+            continue
+        h = horses.get(a.get("horse"))
+        hn = h["name"] if h else "?"
+        r = riders.get(a.get("rider"))
+        parts.append(hn + (f"/{r['name'].split(' ')[0]}" if r else ""))
+    return ", ".join(parts)
+
+
+def _split(start_dt, finish_dt, slot_minutes):
+    if not slot_minutes:
+        return [(start_dt, finish_dt)]
+    out = []
+    cur = start_dt
+    step = timedelta(minutes=slot_minutes)
+    while cur < finish_dt:
+        nxt = min(cur + step, finish_dt)
+        out.append((cur, nxt))
+        cur = nxt
+    return out
+
+
+def week_bookings(state, week_start, days=None, slot_minutes=None):
+    horses = {h["id"]: h for h in state.get("horses", [])}
+    riders = {r["id"]: r for r in state.get("riders", [])}
+    assignments = state.get("assignments", [])
+    day_set = set(range(7)) if days is None else set(days)
+    out = []
+    for s in state.get("slots", []):
+        if s["day"] not in day_set:
+            continue
+        d = week_start + timedelta(days=s["day"])
+        start_dt = datetime.combine(d, _parse_time(s["from"]))
+        finish_dt = datetime.combine(d, _parse_time(s["to"]))
+        mounts = _lesson_mounts(s, assignments, horses, riders)
+        label = _lesson_label(s)
+        full_name = label + (f": {mounts}" if mounts else "")
+        for cs, cf in _split(start_dt, finish_dt, slot_minutes):
+            out.append({
+                "day": s["day"],
+                "start": cs.strftime("%Y-%m-%d %H:%M:%S"),
+                "finish": cf.strftime("%Y-%m-%d %H:%M:%S"),
+                "full_name": full_name,
+            })
+    out.sort(key=lambda b: b["start"])
+    return out
+
+
+def week_range(week_start, days=None):
+    ds = sorted(range(7) if days is None else days)
+    first = week_start + timedelta(days=ds[0])
+    last = week_start + timedelta(days=ds[-1] + 1)
+    return first.strftime("%Y-%m-%d 00:00:00"), last.strftime("%Y-%m-%d 00:00:00")
+```
+
+- [ ] **Step 4: Ověřit, že testy prošly**
+
+Run: `python3 -m pytest tests/test_supersaas.py -v`
+Expected: PASS (5 testů).
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add supersaas.py tests/test_supersaas.py
+git commit -m "SuperSaaS: zhmotnění týdenní šablony na rezervace (čistá logika + testy)"
+```
+
+---
+
+### Task 7: SuperSaaS — HTTP klient (bez klíčů testovatelný)
+
+**Files:**
+- Modify: `supersaas.py` (přidat klienta a konfiguraci)
+- Modify: `tests/test_supersaas.py` (přidat testy klienta)
+
+**Interfaces:**
+- Consumes: `week_bookings`, `week_range` (Task 6).
+- Produces:
+  - `supersaas.is_configured() -> bool` — `True` když jsou `SUPERSAAS_API_KEY` i `SUPERSAAS_SCHEDULE_ID`.
+  - `supersaas.SuperSaasError(status, body)` — výjimka.
+  - `supersaas.SuperSaasClient(api_key, schedule_id, base_url="https://www.supersaas.com", transport=None)` — metody `create_booking(booking) -> str|None`, `list_range(from, to) -> list`, `delete_booking(id) -> None`, `replace(bookings, from, to) -> {"deleted": int, "created": int, "ids": list}`. `transport(method, url, headers, data) -> (status:int, body:bytes, headers:dict)` je injektovatelný.
+  - `supersaas.client_from_env(transport=None) -> SuperSaasClient`.
+
+- [ ] **Step 1: Napsat padající testy klienta (fake transport)**
+
+Připoj do `tests/test_supersaas.py`:
+
+```python
+import supersaas as ss
+
+
+class FakeTransport:
+    def __init__(self):
+        self.calls = []
+        self.range_result = b"[]"
+
+    def __call__(self, method, url, headers, data):
+        self.calls.append((method, url, data))
+        if method == "GET":
+            return 200, self.range_result, {}
+        if method == "POST":
+            return 201, b"{}", {"Location": "/api/bookings/999.json"}
+        if method == "DELETE":
+            return 200, b"", {}
+        return 400, b"", {}
+
+
+def test_client_create_returns_id_from_location():
+    t = FakeTransport()
+    client = ss.SuperSaasClient("KEY", "42", transport=t)
+    bid = client.create_booking({"start": "2026-08-31 16:00:00", "finish": "2026-08-31 17:00:00", "full_name": "Skupinová"})
+    assert bid == "999"
+    method, url, data = t.calls[0]
+    assert method == "POST"
+    assert "api_key=KEY" in url
+
+
+def test_client_replace_deletes_then_creates():
+    t = FakeTransport()
+    t.range_result = b'[{"id": 111}, {"id": 222}]'
+    client = ss.SuperSaasClient("KEY", "42", transport=t)
+    bookings = [{"start": "2026-08-31 16:00:00", "finish": "2026-08-31 17:00:00", "full_name": "A"}]
+    result = client.replace(bookings, "2026-08-31 00:00:00", "2026-09-07 00:00:00")
+    assert result["deleted"] == 2
+    assert result["created"] == 1
+    methods = [c[0] for c in t.calls]
+    assert methods == ["GET", "DELETE", "DELETE", "POST"]
+
+
+def test_is_configured(monkeypatch):
+    monkeypatch.delenv("SUPERSAAS_API_KEY", raising=False)
+    monkeypatch.delenv("SUPERSAAS_SCHEDULE_ID", raising=False)
+    assert ss.is_configured() is False
+    monkeypatch.setenv("SUPERSAAS_API_KEY", "k")
+    monkeypatch.setenv("SUPERSAAS_SCHEDULE_ID", "42")
+    assert ss.is_configured() is True
+```
+
+- [ ] **Step 2: Ověřit, že testy padají**
+
+Run: `python3 -m pytest tests/test_supersaas.py -v`
+Expected: FAIL — `AttributeError: module 'supersaas' has no attribute 'SuperSaasClient'`.
+
+- [ ] **Step 3: Implementovat klienta v supersaas.py**
+
+Připoj na konec `supersaas.py`:
+
+```python
+class SuperSaasError(Exception):
+    def __init__(self, status, body):
+        super().__init__(f"SuperSaaS HTTP {status}: {body!r}")
+        self.status = status
+        self.body = body
+
+
+def is_configured():
+    return bool(os.environ.get("SUPERSAAS_API_KEY") and os.environ.get("SUPERSAAS_SCHEDULE_ID"))
+
+
+def slot_minutes_from_env():
+    v = os.environ.get("SUPERSAAS_SLOT_MINUTES", "").strip()
+    return int(v) if v.isdigit() and int(v) > 0 else None
+
+
+class SuperSaasClient:
+    def __init__(self, api_key, schedule_id, base_url="https://www.supersaas.com", transport=None):
+        self.api_key = api_key
+        self.schedule_id = str(schedule_id)
+        self.base_url = base_url.rstrip("/")
+        self._transport = transport or self._http
+
+    def _http(self, method, url, headers, data):
+        req = urllib.request.Request(url, method=method, headers=headers, data=data)
+        try:
+            with urllib.request.urlopen(req) as r:
+                return r.status, r.read(), dict(r.headers)
+        except urllib.error.HTTPError as e:
+            return e.code, e.read(), dict(e.headers)
+
+    def _url(self, path, params=None):
+        p = dict(params or {})
+        p["api_key"] = self.api_key
+        return f"{self.base_url}{path}?{urllib.parse.urlencode(p)}"
+
+    def create_booking(self, booking):
+        url = self._url("/api/bookings.json")
+        payload = {
+            "schedule_id": self.schedule_id,
+            "booking": {k: booking[k] for k in ("start", "finish", "full_name")},
+        }
+        status, body, headers = self._transport(
+            "POST", url, {"Content-Type": "application/json"}, json.dumps(payload).encode("utf-8")
+        )
+        if status not in (200, 201):
+            raise SuperSaasError(status, body)
+        loc = headers.get("Location", "")
+        tail = loc.rstrip("/").split("/")[-1]
+        return tail.split(".")[0] if tail else None
+
+    def list_range(self, from_dt, to_dt):
+        url = self._url(f"/api/range/{self.schedule_id}.json", {"from": from_dt, "to": to_dt})
+        status, body, _ = self._transport("GET", url, {}, None)
+        if status != 200:
+            raise SuperSaasError(status, body)
+        return json.loads(body or b"[]")
+
+    def delete_booking(self, booking_id):
+        url = self._url(f"/api/bookings/{booking_id}.json", {"schedule_id": self.schedule_id})
+        status, body, _ = self._transport("DELETE", url, {}, None)
+        if status not in (200, 204):
+            raise SuperSaasError(status, body)
+
+    def replace(self, bookings, from_dt, to_dt):
+        existing = self.list_range(from_dt, to_dt)
+        deleted = 0
+        for b in existing:
+            bid = b.get("id")
+            if bid is not None:
+                self.delete_booking(bid)
+                deleted += 1
+        ids = [self.create_booking(b) for b in bookings]
+        return {"deleted": deleted, "created": len(ids), "ids": ids}
+
+
+def client_from_env(transport=None):
+    return SuperSaasClient(
+        os.environ["SUPERSAAS_API_KEY"], os.environ["SUPERSAAS_SCHEDULE_ID"], transport=transport
+    )
+```
+
+- [ ] **Step 4: Ověřit, že testy prošly**
+
+Run: `python3 -m pytest tests/test_supersaas.py -v`
+Expected: PASS (8 testů).
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add supersaas.py tests/test_supersaas.py
+git commit -m "SuperSaaS: HTTP klient (create/list/delete/replace) s injektovatelným transportem"
+```
+
+---
+
+### Task 8: SuperSaaS — Flask endpointy push + status
+
+**Files:**
+- Modify: `app.py`
+- Modify: `tests/test_state.py` (přidat testy SuperSaaS endpointů)
+
+**Interfaces:**
+- Consumes: `supersaas.week_bookings`, `supersaas.week_range`, `supersaas.is_configured`, `supersaas.slot_minutes_from_env`, `supersaas.client_from_env` (Task 6–7); `db.get_state`, `login_required` (Task 1–2).
+- Produces:
+  - `GET /api/supersaas/status` (login required) → `{"configured": bool, "schedule_id": str|None, "slot_minutes": int|None}`.
+  - `POST /api/supersaas/push` (login required), body `{"week_start": "YYYY-MM-DD", "days": [int]|null, "dry_run": bool}` → dry-run nebo bez klíčů: `{"configured": bool, "dry_run": true, "count": int, "bookings": [...]}`; živě: `{"configured": true, "dry_run": false, "deleted": int, "created": int, "count": int}`. Neplatné `week_start` → 400.
+
+- [ ] **Step 1: Napsat padající testy endpointů**
+
+Připoj do `tests/test_state.py`:
+
+```python
+def test_supersaas_status_default(auth_client):
+    resp = auth_client.get("/api/supersaas/status")
+    assert resp.status_code == 200
+    assert resp.get_json()["configured"] is False
+
+
+def test_supersaas_push_dry_run_without_keys(auth_client):
+    auth_client.put("/api/state", json={"version": 0, "data": {
+        "horses": [{"id": "h1", "name": "Dally", "pony": False}],
+        "riders": [], "assignments": [{"slot": "s1", "horse": "h1", "rider": None}],
+        "slots": [{"id": "s1", "day": 0, "from": "16:00", "to": "17:00", "type": "skup", "coach": "Martina"}],
+    }})
+    resp = auth_client.post("/api/supersaas/push", json={"week_start": "2026-08-31", "days": None, "dry_run": True})
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body["configured"] is False
+    assert body["dry_run"] is True
+    assert body["count"] == 1
+    assert body["bookings"][0]["start"] == "2026-08-31 16:00:00"
+
+
+def test_supersaas_push_bad_date(auth_client):
+    resp = auth_client.post("/api/supersaas/push", json={"week_start": "31.8.2026"})
+    assert resp.status_code == 400
+```
+
+- [ ] **Step 2: Ověřit, že testy padají**
+
+Run: `python3 -m pytest tests/test_state.py -v -k supersaas`
+Expected: FAIL — 404 (routy neexistují).
+
+- [ ] **Step 3: Přidat SuperSaaS endpointy + import do app.py**
+
+V `app.py` uprav horní import blok — přidej řádek `from datetime import date` a `import supersaas` k existujícím importům:
+
+```python
+from datetime import date, timedelta
+```
+(řádek `from datetime import timedelta` nahraď tímto) a mezi `import db` přidej:
+```python
+import supersaas
+```
+
+Poté uvnitř `create_app()`, za routu `/` (`index`) a před `return app`, vlož:
+
+```python
+    @app.get("/api/supersaas/status")
+    @login_required
+    def supersaas_status():
+        return jsonify({
+            "configured": supersaas.is_configured(),
+            "schedule_id": os.environ.get("SUPERSAAS_SCHEDULE_ID"),
+            "slot_minutes": supersaas.slot_minutes_from_env(),
+        })
+
+    @app.post("/api/supersaas/push")
+    @login_required
+    def supersaas_push():
+        body = request.get_json(silent=True) or {}
+        try:
+            week_start = date.fromisoformat(str(body.get("week_start", "")))
+        except ValueError:
+            abort(400)
+        days = body.get("days")
+        dry_run = bool(body.get("dry_run"))
+        state = db.get_state().get("data") or {"horses": [], "riders": [], "slots": [], "assignments": []}
+        minutes = supersaas.slot_minutes_from_env()
+        bookings = supersaas.week_bookings(state, week_start, days=days, slot_minutes=minutes)
+        if dry_run or not supersaas.is_configured():
+            return jsonify({"configured": supersaas.is_configured(), "dry_run": True,
+                            "count": len(bookings), "bookings": bookings})
+        from_dt, to_dt = supersaas.week_range(week_start, days)
+        result = supersaas.client_from_env().replace(bookings, from_dt, to_dt)
+        return jsonify({"configured": True, "dry_run": False, "count": len(bookings), **result})
+```
+
+- [ ] **Step 4: Ověřit, že testy prošly**
+
+Run: `python3 -m pytest tests/test_state.py -v -k supersaas`
+Expected: PASS (3 testy).
+
+- [ ] **Step 5: Spustit celou sadu**
+
+Run: `python3 -m pytest -v`
+Expected: PASS (všech 26 testů z Task 1–8).
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add app.py tests/test_state.py
+git commit -m "SuperSaaS: endpointy /api/supersaas/status a /push (dry-run bez klíčů, živě s klíči)"
+```
+
+---
+
+### Task 9: Frontend — tlačítko odeslání do SuperSaaS
+
+**Files:**
+- Modify: `index.html`
+
+**Interfaces:**
+- Consumes: `GET /api/supersaas/status`, `POST /api/supersaas/push` (Task 8).
+- Produces: žádné pro jiné tasky.
+
+> **TDD poznámka:** stejně jako Task 4 — vanilla JS bez runneru, ověřuje se integračně přes běžící server (Step 4).
+
+- [ ] **Step 1: Přidat SuperSaaS toolbar do markupu rozvrhu**
+
+V `index.html`, uvnitř `<div class="board-tools">` (existující blok s tlačítkem „Nový týden"), přidej za `<span class="muted" ...>konkrétní datumy a výjimky – další fáze</span>`:
+
+```html
+      <span style="flex:1"></span>
+      <label style="font-size:12.5px;display:flex;align-items:center;gap:6px">Týden od
+        <input type="date" id="ssWeek" style="padding:5px 8px;border:1px solid #e4ddd2;border-radius:8px;font:inherit"></label>
+      <button class="btn sm ghost" id="ssPreview" title="Náhled, co by se zapsalo do SuperSaaS">Náhled SuperSaaS</button>
+      <button class="btn sm" id="ssPush" title="Odeslat celý týden do rezervačního systému">Odeslat týden →</button>
+```
+
+- [ ] **Step 2: Přidat SuperSaaS logiku do skriptu**
+
+V `index.html` přidej před `boot();` (konec skriptu):
+
+```javascript
+function mondayOfThisWeek(){
+  const d=new Date(); const day=(d.getDay()+6)%7; d.setDate(d.getDate()-day);
+  return d.toISOString().slice(0,10);
+}
+async function ssPush(dryRun){
+  const wk=document.getElementById("ssWeek").value;
+  if(!wk){ alert("Vyber pondělní datum týdne."); return; }
+  const resp=await fetch(BASE+"/api/supersaas/push",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({week_start:wk,days:null,dry_run:dryRun})});
+  if(resp.status===401){ showLogin(); return; }
+  if(!resp.ok){ alert("Chyba odeslání do SuperSaaS ("+resp.status+")."); return; }
+  const r=await resp.json();
+  if(r.dry_run){
+    const lines=r.bookings.map(b=>`${b.start.slice(0,16)} — ${b.full_name}`).join("\n")||"(žádné lekce)";
+    const note=r.configured?"":"\n\n⚠ SuperSaaS zatím není nakonfigurován (chybí API klíč) — jde jen o náhled.";
+    alert(`Náhled ${r.count} rezervací pro týden ${wk}:\n\n${lines}${note}`);
+  }else{
+    alert(`Odesláno do SuperSaaS: vytvořeno ${r.created}, smazáno ${r.deleted} (týden ${wk}).`);
+  }
+}
+async function ssInit(){
+  document.getElementById("ssWeek").value=mondayOfThisWeek();
+  const btn=document.getElementById("ssPush");
+  try{
+    const st=await (await fetch(BASE+"/api/supersaas/status")).json();
+    if(!st.configured){ btn.textContent="Odeslat týden (bez klíče)"; btn.title="SuperSaaS není nakonfigurován — funguje jen náhled"; }
+  }catch(e){}
+  document.getElementById("ssPreview").onclick=()=>ssPush(true);
+  btn.onclick=()=>{ if(confirm("Odeslat celý týden do SuperSaaS? Přepíše rezervace v daném rozsahu.")) ssPush(false); };
+}
+```
+
+A do `loadState()`, hned za `hideLogin();` (před `renderAll()`), přidej volání:
+
+```javascript
+  ssInit();
+```
+
+- [ ] **Step 3: Syntax check JS**
+
+Run:
+```bash
+node -e "const s=require('fs').readFileSync('index.html','utf8');const m=s.match(/<script>([\s\S]*)<\/script>/);new Function(m[1]);console.log('JS OK')"
+```
+Expected: `JS OK`.
+
+- [ ] **Step 4: Integrační ověření**
+
+Spusť server (viz Task 4 Step 7). V appce ověř:
+1. V toolbaru rozvrhu je datum (pondělí tohoto týdne), „Náhled SuperSaaS" a „Odeslat týden".
+2. „Náhled SuperSaaS" → alert se seznamem rezervací s konkrétními daty + poznámkou, že SuperSaaS není nakonfigurován.
+3. Bez klíčů tlačítko odeslání ukazuje „(bez klíče)" a taky jen náhled.
+
+Ukliď dev artefakty (`rm -f dev.db; rm -rf backups`).
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add index.html
+git commit -m "Frontend: toolbar Odeslat týden do SuperSaaS (náhled + push)"
+```
+
+---
+
 ## Self-Review
 
 **Spec coverage** (proti `docs/superpowers/specs/2026-08-30-jezdecka-skola-design.md`, Fáze 2):
@@ -775,6 +1350,9 @@ git commit -m "Deploy: Procfile, runtime, .env.example + README pro Railway"
 - Datový model (horses/riders vč. pref+want / slots / assignments+regular) → uchován 1:1 jako JSON blob, žádná ztráta polí (Task 1 round-trip testy). ✓
 - „Výjimky z týdenní šablony (přesun/zrušení na konkrétní datum)" — **záměrně mimo rozsah tohoto plánu.** Spec je řadí do Fáze 2, ale jsou to samostatný subsystém (kalendář konkrétních dat) nad rámec „přenést prototyp na server". Doporučení: samostatný spec+plán (Fáze 2b) po nasazení tohoto backendu. Zaznamenat uživateli při handoffu.
 - Deploy (Railway) → Task 5. ✓
+- SuperSaaS napojení (poslat den / celý týden, vždy celý týden, nejasnost 30min slotů) → Task 6 (zhmotnění týdne + `slot_minutes` toggle), Task 7 (klient + idempotentní `replace`), Task 8 (endpointy, dry-run bez klíčů), Task 9 (UI). ✓
+- „Vždy celý týden" → `week_bookings` bere jeden `week_start` a `replace()` přepíše celý rozsah; `days` umožní i jeden den. ✓
+- „Klíče později" → vše testovatelné bez klíčů (fake transport, dry-run); živý zápis gated přes `is_configured()`. ✓
 
 **Placeholder scan:** žádné „TODO/TBD/add error handling" — každý krok má reálný kód. ✓
 
@@ -783,6 +1361,15 @@ git commit -m "Deploy: Procfile, runtime, .env.example + README pro Railway"
 - `db.put_state(data, expected_version) -> int | None` — `None` větev → 409 v `app.py`. ✓
 - Frontend `STATE_VERSION` ↔ `{"version"}` z GET/PUT; `S` ↔ `{"data"}`. ✓
 - `create_app()` název konzistentní napříč Task 2/3 a v conftest fixture. ✓
+- `SuperSaasClient(api_key, schedule_id, ...)` — pořadí a názvy argumentů shodné v Task 7 (definice), testech i `client_from_env`. ✓
+- `week_bookings(state, week_start, days, slot_minutes)` a `week_range(week_start, days)` — signatury shodné mezi Task 6 (def) a Task 8 (volání v endpointu). ✓
+- Booking dict klíče `start/finish/full_name` — produkované `week_bookings` (Task 6), konzumované `create_booking` (Task 7). ✓
+
+## Otevřené rozhodnutí (vyřešit až s klíči + přístupem do SuperSaaS)
+
+1. **1 rezervace na lekci vs. per-jezdec:** plán zapisuje **jednu rezervaci na lekci** (obsazenost haly), `full_name` nese seznam koní/jezdců. Pokud SuperSaaS slouží ke klientské self-rezervaci po místech, bude potřeba varianta „rezervace na jezdce" — malá úprava `week_bookings`.
+2. **Granularita slotů:** default 1 rezervace/lekce; `SUPERSAAS_SLOT_MINUTES=30` rozseká na bloky. Ověřit, zda je rozvrh v SuperSaaS *resource* (start/finish) nebo *capacity* (slot_id) — capacity by vyžadovalo mapování `slot_id` (další drobná úprava klienta).
+3. **`schedule_id`** konkrétního rozvrhu jezdecké školy — doplnit do env.
 
 ---
 
