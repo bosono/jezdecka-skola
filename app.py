@@ -49,6 +49,28 @@ def create_app():
         session.clear()
         return jsonify({"ok": True})
 
+    @app.get("/api/state")
+    @login_required
+    def get_state():
+        return jsonify(db.get_state())
+
+    @app.put("/api/state")
+    @login_required
+    def put_state():
+        body = request.get_json(silent=True) or {}
+        data = body.get("data")
+        version = body.get("version")
+        if not isinstance(data, dict) or not isinstance(version, int):
+            abort(400)
+        new_version = db.put_state(data, version)
+        if new_version is None:
+            return jsonify({**db.get_state(), "conflict": True}), 409
+        return jsonify({"version": new_version})
+
+    @app.get("/")
+    def index():
+        return send_file("index.html")
+
     return app
 
 
