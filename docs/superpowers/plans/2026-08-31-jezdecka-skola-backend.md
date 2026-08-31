@@ -393,7 +393,11 @@ def create_app():
     return app
 
 
-app = create_app()
+# Guard: modul-level app se vytvoří jen když je env nastaveno. Bez guardu by se
+# create_app() spustil při importu (pytest collection) dřív, než fixture nastaví env,
+# a spadl na KeyError('SECRET_KEY'). Na produkci (Railway) je SECRET_KEY vždy nastaven,
+# takže gunicorn target app:app dostane reálnou Flask instanci.
+app = create_app() if os.environ.get("SECRET_KEY") else None
 ```
 
 - [ ] **Step 4: Ověřit, že testy prošly**
