@@ -287,18 +287,18 @@ function demoData(){
   slot(6,"09:00","10:00","souk","",[]);
   slot(6,"10:00","11:00","skup","",["Sikky","Klára","Šiml","Ryzka","Sargas","Charmed"]);
   const riders=[
-    {id:"r1",name:"Adéla Nováková",level:"zacatecnik",pref:["h1"],contact:"721 111 222",want:["s1","s11"]},
-    {id:"r2",name:"Bára Kučerová",level:"pokrocily",pref:["h7","h8"],contact:"602 333 444",want:["s2","s5","s10"]},
-    {id:"r3",name:"Cyril Dvořák",level:"zavodnik",pref:["h9"],contact:"777 555 666",want:["s10","s17"]},
-    {id:"r4",name:"Dana Horáková",level:"zacatecnik",pref:["h3"],contact:"605 777 888",want:["s1","s4"]},
-    {id:"r5",name:"Eva Marešová",level:"pokrocily",pref:["h10"],contact:"720 999 000",want:["s5","s12"]},
+    {id:"r1",name:"Adéla Nováková",level:"zacatecnik",pref:["h1"],contact:"721 111 222",want:["s1","s11"],mounts:{pony:true,horse:true}},
+    {id:"r2",name:"Bára Kučerová",level:"pokrocily",pref:["h7","h8"],contact:"602 333 444",want:["s2","s5","s10"],mounts:{pony:false,horse:true}},
+    {id:"r3",name:"Cyril Dvořák",level:"zavodnik",pref:["h9"],contact:"777 555 666",want:["s10","s17"],mounts:{pony:false,horse:true}},
+    {id:"r4",name:"Dana Horáková",level:"zacatecnik",pref:["h4"],contact:"605 777 888",want:["s1","s4"],mounts:{pony:true,horse:false}},
+    {id:"r5",name:"Eva Marešová",level:"pokrocily",pref:["h10"],contact:"720 999 000",want:["s5","s12"],mounts:{pony:false,horse:true}},
   ];
   return {horses:H,slots:SL,assignments:AS,riders};
 }
 
 let S=load();
-function load(){ try{const raw=localStorage.getItem("jezdecka_skola_v8"); if(raw) return JSON.parse(raw);}catch(e){} return demoData(); }
-function save(){ try{localStorage.setItem("jezdecka_skola_v8",JSON.stringify(S));}catch(e){} }
+function load(){ try{const raw=localStorage.getItem("jezdecka_skola_v9"); if(raw) return JSON.parse(raw);}catch(e){} return demoData(); }
+function save(){ try{localStorage.setItem("jezdecka_skola_v9",JSON.stringify(S));}catch(e){} }
 function uid(p){ return p+Math.random().toString(36).slice(2,8); }
 const byId=(arr,id)=>arr.find(x=>x.id===id);
 const riderName=id=>(byId(S.riders,id)||{}).name||"?";
@@ -310,6 +310,8 @@ function toMin(t){ const[h,m]=t.split(":").map(Number); return h*60+m; }
 function horseWeek(hid){ let l=0,h=0; S.assignments.filter(a=>a.horse===hid).forEach(a=>{const sl=byId(S.slots,a.slot); if(!sl)return; l++; h+=slotHours(sl);}); return {lessons:l,hours:Math.round(h*10)/10}; }
 function horseDayCount(hid,day){ return S.assignments.filter(a=>a.horse===hid&&(byId(S.slots,a.slot)||{}).day===day).length; }
 
+function riderMounts(r){ const m=(r&&r.mounts)||{}; return {pony:m.pony!==false, horse:m.horse!==false}; }
+function canRide(r,h){ if(!r||!h) return true; const m=riderMounts(r); return h.pony? m.pony : m.horse; }
 function bookingIssues(slot,bk){
   const out={warn:[],bad:[]}; const t=TYPES[slot.type]; const h=horse(bk.horse);
   if(h){
@@ -324,6 +326,7 @@ function bookingIssues(slot,bk){
   if(bk.rider){
     const r=byId(S.riders,bk.rider);
     if(r&&LEVEL_RANK[r.level]<LEVEL_RANK[t.minLevel]) out.warn.push(`${r.name.split(" ")[0]}: nízká úroveň na tuto lekci`);
+    if(r&&h&&!canRide(r,h)) out.bad.push(`${r.name.split(" ")[0]}: ${h.pony?"nejezdí na pony":"PONY jezdec nemůže na koně"} (${h.name})`);
     if(S.assignments.some(a=>a.rider===bk.rider&&a.slot!==slot.id&&overlap(byId(S.slots,a.slot),slot))) out.bad.push(`${riderName(bk.rider).split(" ")[0]}: kolize s jinou lekcí`);
   }
   return out;
@@ -344,7 +347,8 @@ function renderRiders(){
   S.riders.filter(r=>(!lv||r.level===lv)&&r.name.toLowerCase().includes(q)).sort((a,b)=>a.name.localeCompare(b.name,"cs")).forEach(r=>{
     const tr=document.createElement("tr"); tr.className="row"; tr.onclick=()=>editRider(r.id);
     const wl=(r.want||[]).map(sid=>byId(S.slots,sid)).filter(Boolean).sort((a,b)=>a.day-b.day||toMin(a.from)-toMin(b.from));
-    tr.innerHTML=`<td><strong>${esc(r.name)}</strong></td>
+    const mn=riderMounts(r); const mtag=(mn.pony&&!mn.horse)?'<span class="pony">jen pony</span>':(mn.horse&&!mn.pony)?'<span class="pony">jen kůň</span>':(!mn.pony&&!mn.horse)?'<span class="pony" style="background:#fcefec;color:#b3543f">bez mounta</span>':'';
+    tr.innerHTML=`<td><strong>${esc(r.name)}</strong>${mtag}</td>
       <td><span class="tag lvl-${r.level}">${LEVELS[r.level]}</span></td>
       <td>${(r.pref||[]).map(h=>`<span class="pill">${esc((horse(h)||{}).name||"?")}</span>`).join(" ")||'<span class="muted">–</span>'}</td>
       <td style="font-size:12.5px">${wl.map(s=>`<span class="pill">${DAYS[s.day]} ${s.from}</span>`).join(" ")||'<span class="muted">–</span>'}</td>
@@ -358,7 +362,8 @@ document.getElementById("filterLevel").onchange=renderRiders;
 document.getElementById("addRider").onclick=()=>editRider(null);
 function slotLabel(s){ return `${DAYS[s.day]} ${s.from} · ${TYPES[s.type].name}`; }
 function editRider(id){
-  const r=id?byId(S.riders,id):{name:"",level:"zacatecnik",pref:[],contact:"",want:[]};
+  const r=id?byId(S.riders,id):{name:"",level:"zacatecnik",pref:[],contact:"",want:[],mounts:{pony:true,horse:true}};
+  const mnt=riderMounts(r);
   const opts=S.horses.map(h=>`<label><input type="checkbox" value="${h.id}" ${(r.pref||[]).includes(h.id)?"checked":""}> ${esc(h.name)}</label>`).join("");
   const wopts=S.slots.slice().sort((a,b)=>a.day-b.day||toMin(a.from)-toMin(b.from))
     .map(s=>`<label><input type="checkbox" data-want="${s.id}" ${(r.want||[]).includes(s.id)?"checked":""}> ${slotLabel(s)}</label>`).join("");
@@ -366,6 +371,10 @@ function editRider(id){
     <h3>${id?"Upravit jezdce":"Nový jezdec"}</h3>
     <div class="field"><label>Jméno</label><input type="text" id="f_name" value="${esc(r.name)}"></div>
     <div class="field"><label>Úroveň</label><select id="f_level">${Object.entries(LEVELS).map(([k,v])=>`<option value="${k}" ${r.level===k?"selected":""}>${v}</option>`).join("")}</select></div>
+    <div class="field"><label>Jezdí na — PONY jezdec nemůže dostat koně</label><div class="checks mountchecks">
+      <label><input type="checkbox" data-mount="pony" ${mnt.pony?"checked":""}> Pony</label>
+      <label><input type="checkbox" data-mount="horse" ${mnt.horse?"checked":""}> Kůň</label>
+    </div></div>
     <div class="field"><label>Kontakt</label><input type="text" id="f_contact" value="${esc(r.contact||"")}"></div>
     <div class="field"><label>Stálí koně / dvojice — objeví se v panelu rozvrhu jako přetahovatelná dvojice</label><div class="checks">${opts}</div></div>
     <div class="field"><label>Termíny, kdy chce jezdit — v rozvrhu se u lekce ukáže „chce sem“ a v nabídce posazení jde nahoru</label><div class="checks wantchecks" style="max-height:170px;overflow:auto">${wopts||'<span class="muted" style="font-size:13px">Zatím žádné lekce v rozvrhu.</span>'}</div></div>
@@ -373,8 +382,9 @@ function editRider(id){
     onSave(){
       const name=document.getElementById("f_name").value.trim(); if(!name) return alert("Zadej jméno");
       const o={name,level:document.getElementById("f_level").value,contact:document.getElementById("f_contact").value.trim(),
-        pref:[...document.querySelectorAll(".checks:not(.wantchecks) input:checked")].map(c=>c.value),
-        want:[...document.querySelectorAll(".wantchecks input:checked")].map(c=>c.dataset.want)};
+        pref:[...document.querySelectorAll(".checks:not(.wantchecks):not(.mountchecks) input:checked")].map(c=>c.value),
+        want:[...document.querySelectorAll(".wantchecks input:checked")].map(c=>c.dataset.want),
+        mounts:{pony:document.querySelector('[data-mount="pony"]').checked, horse:document.querySelector('[data-mount="horse"]').checked}};
       if(id) Object.assign(byId(S.riders,id),o); else S.riders.push({id:uid("r"),...o});
       save(); renderRiders(); renderPools(); renderSched();
     },
@@ -466,15 +476,18 @@ function candRiders(sl,hid){
   return S.riders.map(r=>{
     const clash=riderClash(r.id,sl);
     const levelOk=LEVEL_RANK[r.level]>=LEVEL_RANK[t.minLevel];
+    const h=hid&&horse(hid);
+    const mountOk=!h||canRide(r,h);
+    const blocked=clash||!mountOk;
     const stable=hid&&(r.pref||[]).includes(hid);
     const wants=(r.want||[]).includes(sl.id);
     const placed=riderPlaced(r.id);
     let rank=6;
     if(wants&&stable)rank=0; else if(wants)rank=1; else if(stable)rank=2;
     else if(levelOk&&!placed)rank=3; else if(levelOk)rank=4; else rank=5;
-    if(clash)rank=9;
-    const tags=[]; if(wants)tags.push("chce tento termín"); if(stable)tags.push("stálý kůň"); if(!levelOk)tags.push("nízká úroveň"); if(clash)tags.push("kolize v čase"); if(placed&&!clash)tags.push("už má lekci");
-    return {r,clash,rank,tags};
+    if(blocked)rank=9;
+    const tags=[]; if(wants)tags.push("chce tento termín"); if(stable)tags.push("stálý kůň"); if(!levelOk)tags.push("nízká úroveň"); if(!mountOk)tags.push(h&&h.pony?"nejezdí pony":"jen pony"); if(clash)tags.push("kolize v čase"); if(placed&&!clash)tags.push("už má lekci");
+    return {r,clash,blocked,rank,tags};
   }).sort((a,b)=>a.rank-b.rank||a.r.name.localeCompare(b.r.name,"cs"));
 }
 function lessonAcceptsHorse(sl,hid){
@@ -570,10 +583,10 @@ function renderLesson(sl){
 function editBooking(sl,bk){
   const h=horse(bk.horse);
   const cands=candRiders(sl,bk.horse);
-  const btns=cands.map(({r,clash,tags})=>{
+  const btns=cands.map(({r,blocked,tags})=>{
     const sel=bk.rider===r.id;
     const meta=tags.length?` <span style="opacity:.7">· ${tags.join(", ")}</span>`:"";
-    return `<button type="button" class="qpick${sel?" on":""}" data-r="${r.id}" ${clash?"disabled":""}>
+    return `<button type="button" class="qpick${sel?" on":""}" data-r="${r.id}" ${blocked?"disabled":""}>
       ${esc(r.name)} <span class="tag lvl-${r.level}" style="transform:scale(.85)">${LEVELS[r.level]}</span>${meta}</button>`;
   }).join("");
   openModal(`
