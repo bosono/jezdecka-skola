@@ -1,0 +1,705 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jezdecká škola — CRM náhled</title>
+<style>
+  :root{
+    --bg:#f5f2ec; --panel:#ffffff; --ink:#2b2620; --muted:#7d7468;
+    --line:#e4ddd2; --accent:#7a5c3e; --accent-soft:#efe6da;
+    --ok:#3f7d4f; --warn:#b0791a; --bad:#b3543f;
+    --skup:#5c86ad; --kaval:#8a6bb3; --komb:#b0824e; --skok:#b3628a; --souk:#4f8f86;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+  header{background:var(--accent);color:#fff;padding:13px 22px;display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+  header h1{font-size:17px;margin:0;font-weight:600;letter-spacing:.01em}
+  nav{display:flex;gap:3px}
+  nav button{background:transparent;border:0;color:#fff;opacity:.72;padding:7px 15px;border-radius:8px;font-size:14px;cursor:pointer}
+  nav button:hover{opacity:1;background:rgba(255,255,255,.12)}
+  nav button.active{opacity:1;background:rgba(255,255,255,.2);font-weight:600}
+  .spacer{flex:1}
+  header .tool{background:rgba(255,255,255,.14);border:0;color:#fff;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:13px}
+  header .tool:hover{background:rgba(255,255,255,.26)}
+  main{padding:22px;max-width:1400px;margin:0 auto}
+  .view{display:none}
+  .view.active{display:block}
+  h2{font-size:20px;margin:0 0 4px}
+  .sub{color:var(--muted);margin:0 0 18px;max-width:70ch}
+  .bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+  .btn{background:var(--accent);color:#fff;border:0;padding:9px 16px;border-radius:9px;cursor:pointer;font-size:14px}
+  .btn:hover{filter:brightness(1.08)}
+  .btn.ghost{background:var(--accent-soft);color:var(--accent)}
+  .btn.sm{padding:6px 11px;font-size:13px}
+  select,input[type=text],input[type=number],input[type=time],textarea{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
+  table{width:100%;border-collapse:collapse;background:var(--panel);border-radius:var(--radius);overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line)}
+  th{background:var(--accent-soft);color:var(--accent);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+  tr:last-child td{border-bottom:0}
+  tr.row:hover{background:#faf7f2;cursor:pointer}
+  .tag{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600}
+  .lvl-zacatecnik{background:#e6efe8;color:var(--ok)}
+  .lvl-pokrocily{background:#eae6f2;color:#6a4fae}
+  .lvl-zavodnik{background:#f2e6ea;color:#a23f66}
+  .util{display:flex;align-items:center;gap:8px;min-width:150px}
+  .util .track{flex:1;height:7px;border-radius:999px;background:var(--line);overflow:hidden}
+  .util .fill{height:100%}
+  .util .fill.ok{background:var(--ok)} .util .fill.warn{background:var(--warn)} .util .fill.bad{background:var(--bad)}
+  .util small{color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+  .muted{color:var(--muted)}
+  .pill{font-size:12px;background:var(--accent-soft);color:var(--accent);padding:2px 9px;border-radius:999px}
+  .pony{font-size:10px;background:#e7efec;color:var(--souk);padding:1px 5px;border-radius:999px;margin-left:5px;vertical-align:middle;text-transform:uppercase;letter-spacing:.03em}
+
+  /* modal */
+  .modal-bg{position:fixed;inset:0;background:rgba(30,25,20,.45);display:none;align-items:flex-start;justify-content:center;padding:44px 16px;overflow:auto;z-index:50}
+  .modal-bg.open{display:flex}
+  .modal{background:var(--panel);border-radius:16px;max-width:540px;width:100%;padding:24px;box-shadow:0 24px 70px rgba(0,0,0,.28)}
+  .modal h3{margin:0 0 16px}
+  .field{margin-bottom:13px;display:flex;flex-direction:column;gap:5px}
+  .field label{font-size:13px;font-weight:600;color:var(--muted)}
+  .field.row2{flex-direction:row;gap:12px}
+  .field.row2 > div{flex:1;display:flex;flex-direction:column;gap:5px}
+  .checks{display:flex;gap:12px 16px;flex-wrap:wrap}
+  .checks label{font-weight:400;display:flex;gap:6px;align-items:center;font-size:14px;color:var(--ink)}
+  .modal-actions{display:flex;justify-content:space-between;gap:10px;margin-top:22px}
+  .modal-actions .right{display:flex;gap:10px}
+  .link-danger{background:transparent;border:0;color:var(--bad);cursor:pointer;font-size:13px;padding:9px 0}
+  .qpicks{display:flex;flex-direction:column;gap:5px;max-height:280px;overflow:auto}
+  .qpick{text-align:left;background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;cursor:pointer}
+  .qpick:hover:not(:disabled){border-color:var(--accent);background:#faf7f2}
+  .qpick.on{border-color:var(--accent);background:var(--accent-soft);font-weight:600}
+  .qpick:disabled{opacity:.4;cursor:not-allowed;text-decoration:line-through}
+
+  /* schedule board */
+  .board-tools{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+  .layout{display:flex;gap:18px;align-items:flex-start}
+  .pool{flex:0 0 200px;background:var(--panel);border-radius:var(--radius);padding:14px;box-shadow:0 1px 3px rgba(0,0,0,.05);position:sticky;top:14px}
+  .pool h4{margin:2px 0 9px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--accent)}
+  .pool h4:not(:first-child){margin-top:6px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;min-height:16px}
+  .chip{background:#eef2ef;border:1px solid var(--line);border-radius:999px;padding:4px 11px;font-size:13px;cursor:grab;user-select:none}
+  .chip.rider{background:var(--accent-soft)}
+  .chip.pair{background:#e8eef4;border-color:#c9d7e4;color:#3f5f7d;font-weight:600}
+  .chip.placed{opacity:.4}
+  #poolPairs:empty::after,#poolUnplaced:empty::after{font-size:11.5px;color:var(--ok);font-weight:400}
+  #poolPairs:empty::after{content:"Přidej jezdci stálé koně na jeho kartě.";color:var(--muted)}
+  #poolUnplaced:empty::after{content:"Všichni jezdci jsou zařazení ✓"}
+  .chip[draggable=true]:active{cursor:grabbing}
+  .pool .hint{font-size:11.5px;color:var(--muted);margin:2px 0 0;line-height:1.45}
+
+  .board{flex:1;display:grid;gap:12px;overflow-x:auto;padding-bottom:10px}
+  .board::-webkit-scrollbar{height:12px}
+  .board::-webkit-scrollbar-track{background:var(--accent-soft);border-radius:999px}
+  .board::-webkit-scrollbar-thumb{background:var(--accent);border-radius:999px;border:3px solid var(--accent-soft)}
+  .board{scrollbar-color:var(--accent) var(--accent-soft);scrollbar-width:auto}
+  .daycol{background:var(--panel);border-radius:var(--radius);box-shadow:0 1px 3px rgba(0,0,0,.05);display:flex;flex-direction:column;min-height:120px}
+  .daycol > h3{margin:0;padding:10px 12px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel);border-radius:var(--radius) var(--radius) 0 0}
+  .daycol.today > h3{color:#fff;background:var(--accent)}
+  .daybody{padding:8px;display:flex;flex-direction:column;gap:8px;flex:1}
+  .addslot{border:1px dashed var(--line);background:transparent;color:var(--muted);border-radius:9px;padding:7px;font-size:12px;cursor:pointer;width:100%}
+  .addslot:hover{border-color:var(--accent);color:var(--accent)}
+
+  .lesson{border-radius:11px;border:1px solid var(--line);border-left:4px solid var(--muted);background:#fff;padding:8px 9px}
+  .lesson.skup{border-left-color:var(--skup);background:#f4f8fb}
+  .lesson.kaval{border-left-color:var(--kaval);background:#f6f3fa}
+  .lesson.komb{border-left-color:var(--komb);background:#faf6f0}
+  .lesson.skok{border-left-color:var(--skok);background:#fbf3f7}
+  .lesson.souk{border-left-color:var(--souk);background:#f0f7f5}
+  .lesson.drop{outline:2px dashed var(--accent);outline-offset:1px}
+  .board.dragging .lesson.cant{opacity:.3}
+  .board.dragging .lesson.can{box-shadow:0 0 0 2px var(--ok)}
+  .hchip .pin{font-size:10px;opacity:.7}
+  .lhead{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+  .ltime{font-weight:700;font-variant-numeric:tabular-nums}
+  .ltype{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+  .lmeta{width:100%;display:flex;justify-content:space-between;gap:8px;font-size:11.5px;color:var(--muted);margin-top:1px}
+  .lmeta > span:last-child{white-space:nowrap}
+  .lgear{cursor:pointer;opacity:.5;font-size:12px}
+  .lgear:hover{opacity:1}
+  .hchips{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px}
+  .hchip{display:inline-flex;align-items:center;gap:5px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:2px 4px 2px 9px;font-size:12px;cursor:pointer;line-height:1.7;white-space:nowrap}
+  .hchip:hover{border-color:var(--accent)}
+  .hchip .pony{display:none}
+  .hchip.warn{border-color:var(--warn);background:#fff8ec}
+  .hchip.bad{border-color:var(--bad);background:#fcefec}
+  .hchip.dropr{outline:2px dashed var(--accent)}
+  .hchip.free{border-style:dashed}
+  .hchip .rd{color:var(--accent);font-weight:600}
+  .hchip .rd.empty{color:var(--ok);font-weight:600;font-size:11px}
+  .hchip .x{color:var(--bad);font-weight:700;border-radius:999px;width:15px;height:15px;display:inline-flex;align-items:center;justify-content:center;font-size:13px}
+  .hchip .x:hover{background:#f6dcd5}
+  .lempty{margin-top:7px;font-size:11.5px;color:var(--muted);text-align:center;padding:8px;border:1px dashed var(--line);border-radius:8px}
+  .ldemand{margin-top:6px;font-size:11px;color:#3f5f7d;background:#eef3f8;border-radius:6px;padding:3px 6px}
+  .lissues{margin-top:6px;display:flex;flex-direction:column;gap:2px}
+  .lissues div{font-size:11px}
+  .lissues .w{color:var(--warn)} .lissues .b{color:var(--bad)}
+
+  .legend{display:flex;gap:8px 16px;flex-wrap:wrap;margin:14px 0 0;font-size:12px;color:var(--muted)}
+  .legend span{display:inline-flex;align-items:center}
+  .legend span::before{content:"";display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px}
+  .legend .l-skup::before{background:var(--skup)} .legend .l-kaval::before{background:var(--kaval)}
+  .legend .l-komb::before{background:var(--komb)} .legend .l-skok::before{background:var(--skok)}
+  .legend .l-souk::before{background:var(--souk)}
+  .note{background:#fbf6ea;border:1px solid #e9dcb9;color:#6f5518;padding:10px 14px;border-radius:11px;font-size:12.5px;margin-bottom:18px}
+  @media(max-width:1000px){.layout{flex-direction:column}.pool{position:static;width:100%;display:flex;flex-wrap:wrap;gap:8px 18px}.pool h4{width:100%}}
+</style>
+</head>
+<body>
+<header>
+  <h1>🐴 Jezdecká škola</h1>
+  <nav>
+    <button data-view="rozvrh" class="active">Rozvrh</button>
+    <button data-view="kone">Koně</button>
+    <button data-view="jezdci">Jezdci</button>
+  </nav>
+  <div class="spacer"></div>
+  <button class="tool" id="resetBtn">Obnovit výchozí rozpis</button>
+</header>
+
+<main>
+  <div class="note">Veřejná ukázka. Data se ukládají jen ve tvém prohlížeči (localStorage) — každý návštěvník má vlastní kopii, nic se mezi lidmi nesdílí. Nedělní časy jsou zástupné.</div>
+
+  <!-- ROZVRH -->
+  <section class="view active" id="view-rozvrh">
+    <h2>Rozvrh lekcí</h2>
+    <p class="sub">Týdenní šablona. Přetáhni koně z panelu do lekce — kůň bez jezdce je <strong style="color:var(--ok)">volný</strong> (nominovaný, k nabídnutí klientovi). Kliknutím na koně přiřadíš jezdce (vznikne dvojice) nebo koně odebereš. Varování jsou upozornění, časová kolize koně blokuje.</p>
+    <div class="board-tools">
+      <span class="pill">Týdenní šablona</span>
+      <button class="btn sm ghost" id="newWeek" title="Uvolní jednorázově přiřazené jezdce, pravidelné (📌) nechá">Nový týden</button>
+      <label style="font-size:12.5px;display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="showEmpty"> zobrazit prázdné dny</label>
+      <span class="muted" style="font-size:12.5px">konkrétní datumy a výjimky – další fáze</span>
+    </div>
+    <div class="layout">
+      <aside class="pool">
+        <h4>Dvojice (jezdec + kůň)</h4>
+        <div class="chips" id="poolPairs"></div>
+        <h4>Koně</h4>
+        <div class="chips" id="poolHorses"></div>
+        <h4 id="unplacedH">Nezařazení jezdci</h4>
+        <div class="chips" id="poolUnplaced"></div>
+        <h4>Jezdci (všichni)</h4>
+        <div class="chips" id="poolRiders"></div>
+        <p class="hint">Přetáhni <strong>dvojici</strong> nebo <strong>koně</strong> do lekce. Jezdce přetáhni na koně v lekci, nebo na koně klikni a vyber. Při tažení se zvýrazní lekce, kam kůň smí.</p>
+      </aside>
+      <div class="board" id="board"></div>
+    </div>
+    <div class="legend">
+      <span class="l-skup">Skupinová</span>
+      <span class="l-kaval">Kavaletová</span>
+      <span class="l-komb">Kombinovaná</span>
+      <span class="l-skok">Skoková</span>
+      <span class="l-souk">Soukromá / individuální</span>
+    </div>
+  </section>
+
+  <!-- KONE -->
+  <section class="view" id="view-kone">
+    <h2>Koně</h2>
+    <p class="sub">Kartotéka koní — disciplíny (odvozené z rozpisu), individuální limity zátěže a aktuální vytíženost v týdnu. Limity a dny volna doplň klikem na řádek.</p>
+    <div class="bar">
+      <button class="btn" id="addHorse">+ Nový kůň</button>
+      <input type="text" id="searchHorse" placeholder="Hledat jméno…" style="flex:1;min-width:160px">
+    </div>
+    <table id="horseTable">
+      <thead><tr><th>Jméno</th><th>Disciplíny</th><th>Lekcí / týden</th><th>Hodin / týden</th><th>Max/den</th><th>Volno</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <!-- JEZDCI -->
+  <section class="view" id="view-jezdci">
+    <h2>Jezdci</h2>
+    <p class="sub">Kartotéka jezdců — úroveň, preferovaní koně, kontakt. (Ukázkové záznamy, doplní škola.)</p>
+    <div class="bar">
+      <button class="btn" id="addRider">+ Nový jezdec</button>
+      <select id="filterLevel">
+        <option value="">Všechny úrovně</option>
+        <option value="zacatecnik">Začátečník</option>
+        <option value="pokrocily">Pokročilý</option>
+        <option value="zavodnik">Závodník</option>
+      </select>
+      <input type="text" id="searchRider" placeholder="Hledat jméno…" style="flex:1;min-width:160px">
+    </div>
+    <table id="riderTable">
+      <thead><tr><th>Jméno</th><th>Úroveň</th><th>Stálí koně</th><th>Chce jezdit</th><th>Kontakt</th><th>Lekcí tento týden</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+</main>
+
+<div class="modal-bg" id="modalBg"><div class="modal" id="modalBox"></div></div>
+
+<script>
+"use strict";
+const DAYS=["Po","Út","St","Čt","Pá","So","Ne"];
+const DAYS_LONG=["Pondělí","Úterý","Středa","Čtvrtek","Pátek","Sobota","Neděle"];
+const LEVELS={zacatecnik:"Začátečník",pokrocily:"Pokročilý",zavodnik:"Závodník"};
+const LEVEL_RANK={zacatecnik:1,pokrocily:2,zavodnik:3};
+const TYPES={
+  skup:{name:"Skupinová",cls:"skup",minLevel:"zacatecnik",disc:"skup"},
+  kaval:{name:"Kavaletová",cls:"kaval",minLevel:"pokrocily",disc:"kaval"},
+  komb:{name:"Kombinovaná",cls:"komb",minLevel:"pokrocily",disc:"komb"},
+  skok:{name:"Skoková",cls:"skok",minLevel:"pokrocily",disc:"skok"},
+  souk:{name:"Soukromá / individuální",cls:"souk",minLevel:"zacatecnik",disc:"skup"},
+};
+
+function demoData(){
+  const H=[
+    {id:"h1",name:"Dally",breed:"",pony:false,disc:{skup:1},maxDay:2,maxWeek:8,maxHours:8,restDays:[]},
+    {id:"h2",name:"Rubín",breed:"",pony:false,disc:{skup:1},maxDay:2,maxWeek:8,maxHours:8,restDays:[]},
+    {id:"h3",name:"Adélka",breed:"",pony:false,disc:{skup:1},maxDay:2,maxWeek:8,maxHours:8,restDays:[]},
+    {id:"h4",name:"Sargas",breed:"",pony:true,disc:{skup:1},maxDay:2,maxWeek:8,maxHours:7,restDays:[]},
+    {id:"h5",name:"Charmed",breed:"",pony:true,disc:{skup:1},maxDay:2,maxWeek:8,maxHours:7,restDays:[]},
+    {id:"h6",name:"Fatra",breed:"",pony:false,disc:{skup:1,komb:1,skok:1},maxDay:2,maxWeek:8,maxHours:8,restDays:[]},
+    {id:"h7",name:"Klára",breed:"",pony:false,disc:{skup:1,kaval:1,komb:1,skok:1},maxDay:2,maxWeek:8,maxHours:8,restDays:[]},
+    {id:"h8",name:"Laila",breed:"",pony:false,disc:{skup:1,kaval:1,komb:1,skok:1},maxDay:2,maxWeek:8,maxHours:8,restDays:[]},
+    {id:"h9",name:"Šiml",breed:"",pony:false,disc:{skup:1,kaval:1,komb:1,skok:1},maxDay:2,maxWeek:8,maxHours:8,restDays:[]},
+    {id:"h10",name:"Ryzka",breed:"",pony:false,disc:{skup:1,kaval:1,komb:1,skok:1},maxDay:2,maxWeek:8,maxHours:8,restDays:[]},
+    {id:"h11",name:"Lady",breed:"",pony:false,disc:{skup:1,kaval:1},maxDay:2,maxWeek:8,maxHours:8,restDays:[]},
+    {id:"h12",name:"Sikky",breed:"",pony:false,disc:{skup:1},maxDay:2,maxWeek:8,maxHours:8,restDays:[]},
+  ];
+  const nm={}; H.forEach(h=>nm[h.name]=h.id);
+  const SL=[],AS=[]; let sc=0;
+  function slot(day,from,to,type,coach,horses){
+    const id="s"+(++sc);
+    SL.push({id,day,from,to,type,coach,cap:horses.length||(type==="souk"?1:6),place:""});
+    horses.forEach(n=>AS.push({slot:id,horse:nm[n],rider:null,regular:false}));
+  }
+  slot(0,"16:00","17:00","skup","Martina",["Dally","Rubín","Adélka","Sargas","Charmed"]);
+  slot(0,"17:00","18:00","skup","Martina",["Fatra","Klára","Laila","Šiml","Ryzka"]);
+  slot(0,"18:15","19:15","kaval","Martina",["Lady","Laila","Šiml","Ryzka","Klára"]);
+  slot(1,"16:00","17:00","skup","Veronika",["Dally","Rubín","Adélka","Sikky","Sargas","Charmed"]);
+  slot(1,"17:00","18:00","skup","Veronika",["Klára","Fatra","Laila","Šiml","Ryzka"]);
+  slot(1,"18:00","19:00","skup","Veronika",["Dally","Rubín","Adélka","Sikky","Lady"]);
+  slot(2,"16:00","17:00","skup","Veronika",["Klára","Fatra","Lady","Dally","Charmed"]);
+  slot(2,"17:00","18:00","skup","Veronika",["Adélka","Dally","Šiml","Ryzka","Laila"]);
+  slot(2,"18:00","19:00","souk","Veronika",["Lady","Rubín","Sargas"]);
+  slot(2,"19:00","20:00","skok","Veronika",["Klára","Fatra","Laila","Šiml","Ryzka"]);
+  slot(3,"16:00","17:00","skup","Veronika",["Lady","Rubín","Adélka","Sikky","Sargas","Charmed"]);
+  slot(3,"17:00","18:00","skup","Veronika",["Klára","Fatra","Laila","Šiml","Ryzka"]);
+  slot(3,"18:00","19:00","skup","Veronika",["Dally","Rubín","Adélka","Sikky","Lady"]);
+  slot(4,"15:00","16:00","souk","Eva",[]);
+  slot(4,"16:00","17:00","skup","Eva",["Lady","Rubín","Adélka","Dally","Sargas","Charmed"]);
+  slot(4,"17:00","18:00","skup","Eva",["Lady","Rubín","Adélka","Dally","Sargas","Charmed"]);
+  slot(4,"18:00","19:00","komb","Áňa",["Klára","Fatra","Ryzka","Laila","Šiml"]);
+  slot(6,"09:00","10:00","souk","",[]);
+  slot(6,"10:00","11:00","skup","",["Sikky","Klára","Šiml","Ryzka","Sargas","Charmed"]);
+  const riders=[]; // veřejná ukázka: prázdná DB jezdců, koně + rozvrh zůstávají
+  return {horses:H,slots:SL,assignments:AS,riders};
+}
+
+let S=load();
+function load(){ try{const raw=localStorage.getItem("jezdecka_skola_v9"); if(raw) return JSON.parse(raw);}catch(e){} return demoData(); }
+function save(){ try{localStorage.setItem("jezdecka_skola_v9",JSON.stringify(S));}catch(e){} }
+function uid(p){ return p+Math.random().toString(36).slice(2,8); }
+const byId=(arr,id)=>arr.find(x=>x.id===id);
+const riderName=id=>(byId(S.riders,id)||{}).name||"?";
+const horse=id=>byId(S.horses,id);
+function slotHours(sl){ const[a,b]=sl.from.split(":").map(Number),[c,d]=sl.to.split(":").map(Number); return ((c*60+d)-(a*60+b))/60; }
+function overlap(a,b){ if(!a||!b||a.day!==b.day) return false; const m=t=>{const[h,mm]=t.split(":").map(Number);return h*60+mm;}; return m(a.from)<m(b.to)&&m(b.from)<m(a.to); }
+function toMin(t){ const[h,m]=t.split(":").map(Number); return h*60+m; }
+
+function horseWeek(hid){ let l=0,h=0; S.assignments.filter(a=>a.horse===hid).forEach(a=>{const sl=byId(S.slots,a.slot); if(!sl)return; l++; h+=slotHours(sl);}); return {lessons:l,hours:Math.round(h*10)/10}; }
+function horseDayCount(hid,day){ return S.assignments.filter(a=>a.horse===hid&&(byId(S.slots,a.slot)||{}).day===day).length; }
+
+function riderMounts(r){ const m=(r&&r.mounts)||{}; return {pony:m.pony!==false, horse:m.horse!==false}; }
+function canRide(r,h){ if(!r||!h) return true; const m=riderMounts(r); return h.pony? m.pony : m.horse; }
+function bookingIssues(slot,bk){
+  const out={warn:[],bad:[]}; const t=TYPES[slot.type]; const h=horse(bk.horse);
+  if(h){
+    if(t.disc!=="skup"&&!h.disc[t.disc]) out.warn.push(`${h.name}: bez disciplíny „${t.name}“`);
+    if(h.restDays.includes(slot.day)) out.warn.push(`${h.name}: má v ${DAYS[slot.day]} volno`);
+    const w=horseWeek(bk.horse);
+    if(w.lessons>h.maxWeek) out.warn.push(`${h.name}: přes týdenní limit (${w.lessons}/${h.maxWeek})`);
+    if(w.hours>h.maxHours) out.warn.push(`${h.name}: přes limit hodin (${w.hours}/${h.maxHours})`);
+    if(horseDayCount(bk.horse,slot.day)>h.maxDay) out.warn.push(`${h.name}: přes denní limit v ${DAYS[slot.day]}`);
+    if(S.assignments.some(a=>a.horse===bk.horse&&a.slot!==slot.id&&overlap(byId(S.slots,a.slot),slot))) out.bad.push(`${h.name}: kolize s jinou lekcí`);
+  }
+  if(bk.rider){
+    const r=byId(S.riders,bk.rider);
+    if(r&&LEVEL_RANK[r.level]<LEVEL_RANK[t.minLevel]) out.warn.push(`${r.name.split(" ")[0]}: nízká úroveň na tuto lekci`);
+    if(r&&h&&!canRide(r,h)) out.bad.push(`${r.name.split(" ")[0]}: ${h.pony?"nejezdí na pony":"PONY jezdec nemůže na koně"} (${h.name})`);
+    if(S.assignments.some(a=>a.rider===bk.rider&&a.slot!==slot.id&&overlap(byId(S.slots,a.slot),slot))) out.bad.push(`${riderName(bk.rider).split(" ")[0]}: kolize s jinou lekcí`);
+  }
+  return out;
+}
+
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("active",x===b));
+  document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active",v.id==="view-"+b.dataset.view));
+  if(b.dataset.view==="rozvrh") renderSched();
+});
+
+/* ---------- RIDERS ---------- */
+function riderWeekLessons(rid){ return S.assignments.filter(a=>a.rider===rid).length; }
+function renderRiders(){
+  const q=(document.getElementById("searchRider").value||"").toLowerCase();
+  const lv=document.getElementById("filterLevel").value;
+  const tb=document.querySelector("#riderTable tbody"); tb.innerHTML="";
+  S.riders.filter(r=>(!lv||r.level===lv)&&r.name.toLowerCase().includes(q)).sort((a,b)=>a.name.localeCompare(b.name,"cs")).forEach(r=>{
+    const tr=document.createElement("tr"); tr.className="row"; tr.onclick=()=>editRider(r.id);
+    const wl=(r.want||[]).map(sid=>byId(S.slots,sid)).filter(Boolean).sort((a,b)=>a.day-b.day||toMin(a.from)-toMin(b.from));
+    const mn=riderMounts(r); const mtag=(mn.pony&&!mn.horse)?'<span class="pony">jen pony</span>':(mn.horse&&!mn.pony)?'<span class="pony">jen kůň</span>':(!mn.pony&&!mn.horse)?'<span class="pony" style="background:#fcefec;color:#b3543f">bez mounta</span>':'';
+    tr.innerHTML=`<td><strong>${esc(r.name)}</strong>${mtag}</td>
+      <td><span class="tag lvl-${r.level}">${LEVELS[r.level]}</span></td>
+      <td>${(r.pref||[]).map(h=>`<span class="pill">${esc((horse(h)||{}).name||"?")}</span>`).join(" ")||'<span class="muted">–</span>'}</td>
+      <td style="font-size:12.5px">${wl.map(s=>`<span class="pill">${DAYS[s.day]} ${s.from}</span>`).join(" ")||'<span class="muted">–</span>'}</td>
+      <td class="muted">${esc(r.contact||"–")}</td>
+      <td>${riderWeekLessons(r.id)}</td>`;
+    tb.appendChild(tr);
+  });
+}
+document.getElementById("searchRider").oninput=renderRiders;
+document.getElementById("filterLevel").onchange=renderRiders;
+document.getElementById("addRider").onclick=()=>editRider(null);
+function slotLabel(s){ return `${DAYS[s.day]} ${s.from} · ${TYPES[s.type].name}`; }
+function editRider(id){
+  const r=id?byId(S.riders,id):{name:"",level:"zacatecnik",pref:[],contact:"",want:[],mounts:{pony:true,horse:true}};
+  const mnt=riderMounts(r);
+  const opts=S.horses.map(h=>`<label><input type="checkbox" value="${h.id}" ${(r.pref||[]).includes(h.id)?"checked":""}> ${esc(h.name)}</label>`).join("");
+  const wopts=S.slots.slice().sort((a,b)=>a.day-b.day||toMin(a.from)-toMin(b.from))
+    .map(s=>`<label><input type="checkbox" data-want="${s.id}" ${(r.want||[]).includes(s.id)?"checked":""}> ${slotLabel(s)}</label>`).join("");
+  openModal(`
+    <h3>${id?"Upravit jezdce":"Nový jezdec"}</h3>
+    <div class="field"><label>Jméno</label><input type="text" id="f_name" value="${esc(r.name)}"></div>
+    <div class="field"><label>Úroveň</label><select id="f_level">${Object.entries(LEVELS).map(([k,v])=>`<option value="${k}" ${r.level===k?"selected":""}>${v}</option>`).join("")}</select></div>
+    <div class="field"><label>Jezdí na — PONY jezdec nemůže dostat koně</label><div class="checks mountchecks">
+      <label><input type="checkbox" data-mount="pony" ${mnt.pony?"checked":""}> Pony</label>
+      <label><input type="checkbox" data-mount="horse" ${mnt.horse?"checked":""}> Kůň</label>
+    </div></div>
+    <div class="field"><label>Kontakt</label><input type="text" id="f_contact" value="${esc(r.contact||"")}"></div>
+    <div class="field"><label>Stálí koně / dvojice — objeví se v panelu rozvrhu jako přetahovatelná dvojice</label><div class="checks">${opts}</div></div>
+    <div class="field"><label>Termíny, kdy chce jezdit — v rozvrhu se u lekce ukáže „chce sem“ a v nabídce posazení jde nahoru</label><div class="checks wantchecks" style="max-height:170px;overflow:auto">${wopts||'<span class="muted" style="font-size:13px">Zatím žádné lekce v rozvrhu.</span>'}</div></div>
+  `,{
+    onSave(){
+      const name=document.getElementById("f_name").value.trim(); if(!name) return alert("Zadej jméno");
+      const o={name,level:document.getElementById("f_level").value,contact:document.getElementById("f_contact").value.trim(),
+        pref:[...document.querySelectorAll(".checks:not(.wantchecks):not(.mountchecks) input:checked")].map(c=>c.value),
+        want:[...document.querySelectorAll(".wantchecks input:checked")].map(c=>c.dataset.want),
+        mounts:{pony:document.querySelector('[data-mount="pony"]').checked, horse:document.querySelector('[data-mount="horse"]').checked}};
+      if(id) Object.assign(byId(S.riders,id),o); else S.riders.push({id:uid("r"),...o});
+      save(); renderRiders(); renderPools(); renderSched();
+    },
+    onDelete:id?()=>{ if(!confirm("Smazat jezdce?"))return; S.riders=S.riders.filter(x=>x.id!==id); S.assignments.forEach(a=>{if(a.rider===id)a.rider=null;}); save(); renderRiders(); renderSched(); renderPools(); }:null
+  });
+}
+
+/* ---------- HORSES ---------- */
+function utilCell(val,max){ const pct=Math.min(100,Math.round(val/max*100)); const cls=val>max?"bad":pct>=80?"warn":"ok";
+  return `<div class="util"><div class="track"><div class="fill ${cls}" style="width:${pct}%"></div></div><small>${val} / ${max}</small></div>`; }
+function renderHorses(){
+  const q=(document.getElementById("searchHorse").value||"").toLowerCase();
+  const tb=document.querySelector("#horseTable tbody"); tb.innerHTML="";
+  S.horses.filter(h=>h.name.toLowerCase().includes(q)).sort((a,b)=>a.name.localeCompare(b.name,"cs")).forEach(h=>{
+    const w=horseWeek(h.id);
+    const disc=Object.keys(TYPES).filter(k=>k!=="souk"&&h.disc[k]).map(k=>TYPES[k].name).join(", ")||"–";
+    const tr=document.createElement("tr"); tr.className="row"; tr.onclick=()=>editHorse(h.id);
+    tr.innerHTML=`<td><strong>${esc(h.name)}</strong>${h.pony?'<span class="pony">pony</span>':''}${h.breed&&!h.pony?`<br><span class="muted" style="font-size:12px">${esc(h.breed)}</span>`:''}</td>
+      <td style="font-size:13px">${disc}</td>
+      <td>${utilCell(w.lessons,h.maxWeek)}</td>
+      <td>${utilCell(w.hours,h.maxHours)}</td>
+      <td>${h.maxDay}</td>
+      <td style="font-size:13px">${h.restDays.map(d=>DAYS[d]).join(", ")||'<span class="muted">–</span>'}</td>`;
+    tb.appendChild(tr);
+  });
+}
+document.getElementById("searchHorse").oninput=renderHorses;
+document.getElementById("addHorse").onclick=()=>editHorse(null);
+function editHorse(id){
+  const h=id?byId(S.horses,id):{name:"",breed:"",pony:false,disc:{skup:1},maxDay:2,maxWeek:8,maxHours:8,restDays:[]};
+  const dBoxes=Object.entries(TYPES).filter(([k])=>k!=="souk").map(([k,t])=>`<label><input type="checkbox" data-disc="${k}" ${h.disc[k]?"checked":""} ${k==="skup"?"disabled checked":""}> ${t.name}</label>`).join("");
+  const rBoxes=DAYS.map((d,i)=>`<label><input type="checkbox" data-rest="${i}" ${h.restDays.includes(i)?"checked":""}> ${d}</label>`).join("");
+  openModal(`
+    <h3>${id?"Upravit koně":"Nový kůň"}</h3>
+    <div class="field row2">
+      <div><label>Jméno</label><input type="text" id="f_hname" value="${esc(h.name)}"></div>
+      <div><label>Pony</label><select id="f_pony"><option value="0" ${!h.pony?"selected":""}>Ne</option><option value="1" ${h.pony?"selected":""}>Ano</option></select></div>
+    </div>
+    <div class="field"><label>Popis (plemeno, věk…)</label><input type="text" id="f_breed" value="${esc(h.breed||"")}"></div>
+    <div class="field"><label>Povolené disciplíny (skupinová platí vždy)</label><div class="checks">${dBoxes}</div></div>
+    <div class="field row2">
+      <div><label>Max lekcí / den</label><input type="number" id="f_maxday" value="${h.maxDay}" min="0"></div>
+      <div><label>Max lekcí / týden</label><input type="number" id="f_maxweek" value="${h.maxWeek}" min="0"></div>
+      <div><label>Max hodin / týden</label><input type="number" id="f_maxhours" value="${h.maxHours}" min="0"></div>
+    </div>
+    <div class="field"><label>Dny volna</label><div class="checks">${rBoxes}</div></div>
+  `,{
+    onSave(){
+      const name=document.getElementById("f_hname").value.trim(); if(!name) return alert("Zadej jméno");
+      const disc={skup:1}; document.querySelectorAll("[data-disc]").forEach(c=>{ if(c.checked) disc[c.dataset.disc]=1; });
+      const o={name,breed:document.getElementById("f_breed").value.trim(),pony:document.getElementById("f_pony").value==="1",disc,
+        maxDay:+document.getElementById("f_maxday").value,maxWeek:+document.getElementById("f_maxweek").value,maxHours:+document.getElementById("f_maxhours").value,
+        restDays:[...document.querySelectorAll("[data-rest]:checked")].map(c=>+c.dataset.rest)};
+      if(id) Object.assign(byId(S.horses,id),o); else S.horses.push({id:uid("h"),...o});
+      save(); renderHorses(); renderSched(); renderPools();
+    },
+    onDelete:id?()=>{ if(!confirm("Smazat koně a jeho nasazení v rozvrhu?"))return;
+      S.horses=S.horses.filter(x=>x.id!==id); S.assignments=S.assignments.filter(a=>a.horse!==id);
+      S.riders.forEach(r=>r.pref=r.pref.filter(p=>p!==id)); save(); renderHorses(); renderSched(); renderPools(); }:null
+  });
+}
+
+/* ---------- SCHEDULE (day board) ---------- */
+let dragKind=null,dragId=null,dragPair=null;
+function renderSched(){
+  const board=document.getElementById("board"); board.innerHTML="";
+  const todayIdx=(new Date().getDay()+6)%7;
+  const showEmpty=document.getElementById("showEmpty").checked;
+  const visible=DAYS.map((d,di)=>di).filter(di=>showEmpty||S.slots.some(s=>s.day===di));
+  board.style.gridTemplateColumns=`repeat(${visible.length},minmax(190px,1fr))`;
+  visible.forEach(di=>{
+    const col=document.createElement("div"); col.className="daycol"+(di===todayIdx?" today":"");
+    col.innerHTML=`<h3>${DAYS_LONG[di]}</h3>`;
+    const body=document.createElement("div"); body.className="daybody";
+    S.slots.filter(s=>s.day===di).sort((a,b)=>toMin(a.from)-toMin(b.from)).forEach(sl=>body.appendChild(renderLesson(sl)));
+    const add=document.createElement("button"); add.className="addslot"; add.textContent="+ lekce";
+    add.onclick=()=>editSlotObj({id:null,day:di,from:"16:00",to:"17:00",type:"skup",coach:"",cap:6,place:""});
+    body.appendChild(add);
+    col.appendChild(body); board.appendChild(col);
+  });
+  renderPools();
+}
+/* planning helpers */
+function riderClash(rid,sl){ return S.assignments.some(a=>a.rider===rid&&a.slot!==sl.id&&overlap(byId(S.slots,a.slot),sl)); }
+function horseClash(hid,sl){ return S.assignments.some(a=>a.horse===hid&&a.slot!==sl.id&&overlap(byId(S.slots,a.slot),sl)); }
+function riderPlaced(rid){ return S.assignments.some(a=>a.rider===rid); }
+function candRiders(sl,hid){
+  const t=TYPES[sl.type];
+  return S.riders.map(r=>{
+    const clash=riderClash(r.id,sl);
+    const levelOk=LEVEL_RANK[r.level]>=LEVEL_RANK[t.minLevel];
+    const h=hid&&horse(hid);
+    const mountOk=!h||canRide(r,h);
+    const blocked=clash||!mountOk;
+    const stable=hid&&(r.pref||[]).includes(hid);
+    const wants=(r.want||[]).includes(sl.id);
+    const placed=riderPlaced(r.id);
+    let rank=6;
+    if(wants&&stable)rank=0; else if(wants)rank=1; else if(stable)rank=2;
+    else if(levelOk&&!placed)rank=3; else if(levelOk)rank=4; else rank=5;
+    if(blocked)rank=9;
+    const tags=[]; if(wants)tags.push("chce tento termín"); if(stable)tags.push("stálý kůň"); if(!levelOk)tags.push("nízká úroveň"); if(!mountOk)tags.push(h&&h.pony?"nejezdí pony":"jen pony"); if(clash)tags.push("kolize v čase"); if(placed&&!clash)tags.push("už má lekci");
+    return {r,clash,blocked,rank,tags};
+  }).sort((a,b)=>a.rank-b.rank||a.r.name.localeCompare(b.r.name,"cs"));
+}
+function lessonAcceptsHorse(sl,hid){
+  const h=horse(hid); if(!h) return false;
+  if(horseClash(hid,sl)) return false;
+  return true;
+}
+function markTargets(){
+  const board=document.getElementById("board"); if(!board) return;
+  board.classList.add("dragging");
+  const hid = dragKind==="pair" ? (dragPair&&dragPair.horse) : dragKind==="horse" ? dragId : null;
+  board.querySelectorAll(".lesson").forEach(el=>{
+    const sl=byId(S.slots,el.dataset.slot); if(!sl) return;
+    let ok=true;
+    if(hid){
+      const already=S.assignments.some(a=>a.slot===sl.id&&a.horse===hid);
+      ok = already || lessonAcceptsHorse(sl,hid);
+      if(dragKind==="pair"&&dragPair&&riderClash(dragPair.rider,sl)) ok=false;
+    }
+    el.classList.toggle("can",ok); el.classList.toggle("cant",!ok);
+  });
+}
+function clearTargets(){
+  const board=document.getElementById("board"); if(!board) return;
+  board.classList.remove("dragging");
+  board.querySelectorAll(".lesson").forEach(el=>el.classList.remove("can","cant"));
+}
+
+function renderLesson(sl){
+  const t=TYPES[sl.type];
+  const el=document.createElement("div"); el.className="lesson "+t.cls; el.dataset.slot=sl.id;
+  const rows=S.assignments.filter(a=>a.slot===sl.id);
+  const freeCnt=rows.filter(a=>!a.rider).length;
+  const head=document.createElement("div"); head.className="lhead";
+  head.innerHTML=`<span class="ltime">${sl.from}–${sl.to}</span><span class="ltype">${t.name}</span>
+    <span class="lmeta"><span>${esc(sl.coach||"—")}${sl.place?" · "+esc(sl.place):""}</span><span>${rows.length}/${sl.cap}${freeCnt?` · <span style="color:var(--ok)">${freeCnt} voln${freeCnt===1?"ý":freeCnt<5?"í":"ých"}</span>`:""} <span class="lgear" title="Upravit lekci">⚙</span></span></span>`;
+  head.querySelector(".lgear").onclick=e=>{ e.stopPropagation(); editSlot(sl.id); };
+  el.appendChild(head);
+
+  const chips=document.createElement("div"); chips.className="hchips";
+  const allIssues=[];
+  rows.forEach(a=>{
+    const iss=bookingIssues(sl,a); iss.warn.forEach(w=>allIssues.push(["w",w])); iss.bad.forEach(w=>allIssues.push(["b",w]));
+    const h=horse(a.horse);
+    const c=document.createElement("span");
+    c.className="hchip"+(iss.bad.length?" bad":iss.warn.length?" warn":"")+(a.rider?"":" free");
+    c.innerHTML=`<span>${h?esc(h.name):"?"}${h&&h.pony?'<span class="pony">p</span>':''}</span>`+
+      (a.rider?`<span class="rd">${esc(riderName(a.rider).split(" ")[0])}${a.regular?'<span class="pin" title="Pravidelně">📌</span>':''}</span>`:`<span class="rd empty">volný</span>`)+
+      `<span class="x" title="Odebrat">×</span>`;
+    c.onclick=e=>{ if(e.target.classList.contains("x")){ S.assignments=S.assignments.filter(x=>x!==a); save(); renderSched(); renderHorses(); renderRiders(); } else editBooking(sl,a); };
+    c.ondragover=e=>{ if(dragKind==="rider"||dragKind==="pair"){ e.preventDefault(); c.classList.add("dropr"); } };
+    c.ondragleave=()=>c.classList.remove("dropr");
+    c.ondrop=e=>{ c.classList.remove("dropr"); e.preventDefault(); e.stopPropagation();
+      if(dragKind==="rider"){ a.rider=dragId; a.regular=false; }
+      else if(dragKind==="pair"&&dragPair){ a.rider=dragPair.rider; a.regular=true; }
+      else return;
+      save(); renderSched(); renderRiders(); };
+    chips.appendChild(c);
+  });
+  el.appendChild(chips);
+  if(!rows.length){ const e=document.createElement("div"); e.className="lempty"; e.textContent="přetáhni koně sem"; el.appendChild(e); }
+  const wanters=S.riders.filter(r=>(r.want||[]).includes(sl.id)&&!rows.some(a=>a.rider===r.id));
+  if(wanters.length){
+    const d=document.createElement("div"); d.className="ldemand";
+    d.textContent="chce sem: "+wanters.map(r=>r.name.split(" ")[0]).join(", ");
+    el.appendChild(d);
+  }
+  if(allIssues.length){
+    const box=document.createElement("div"); box.className="lissues";
+    allIssues.forEach(([k,txt])=>{ const l=document.createElement("div"); l.className=k; l.textContent=(k==="b"?"⛔ ":"⚠ ")+txt; box.appendChild(l); });
+    el.appendChild(box);
+  }
+  el.ondragover=e=>{ if(dragKind==="horse"||dragKind==="pair"){ e.preventDefault(); el.classList.add("drop"); } };
+  el.ondragleave=()=>el.classList.remove("drop");
+  el.ondrop=e=>{ el.classList.remove("drop");
+    if(dragKind==="horse"){ e.preventDefault();
+      if(S.assignments.some(a=>a.slot===sl.id&&a.horse===dragId))return;
+      if(rows.length>=sl.cap&&!confirm("Kapacita naplněna, přidat i tak?"))return;
+      S.assignments.push({slot:sl.id,horse:dragId,rider:null,regular:false}); save(); renderSched(); renderHorses(); return;
+    }
+    if(dragKind==="pair"&&dragPair){ e.preventDefault();
+      const ex=S.assignments.find(a=>a.slot===sl.id&&a.horse===dragPair.horse);
+      if(ex){ ex.rider=dragPair.rider; ex.regular=true; }
+      else{
+        if(rows.length>=sl.cap&&!confirm("Kapacita naplněna, přidat i tak?"))return;
+        S.assignments.push({slot:sl.id,horse:dragPair.horse,rider:dragPair.rider,regular:true});
+      }
+      save(); renderSched(); renderHorses(); renderRiders();
+    }
+  };
+  return el;
+}
+function editBooking(sl,bk){
+  const h=horse(bk.horse);
+  const cands=candRiders(sl,bk.horse);
+  const btns=cands.map(({r,blocked,tags})=>{
+    const sel=bk.rider===r.id;
+    const meta=tags.length?` <span style="opacity:.7">· ${tags.join(", ")}</span>`:"";
+    return `<button type="button" class="qpick${sel?" on":""}" data-r="${r.id}" ${blocked?"disabled":""}>
+      ${esc(r.name)} <span class="tag lvl-${r.level}" style="transform:scale(.85)">${LEVELS[r.level]}</span>${meta}</button>`;
+  }).join("");
+  openModal(`
+    <h3>${esc(h?h.name:"Kůň")} — ${TYPES[sl.type].name}</h3>
+    <p class="muted" style="margin:-8px 0 14px;font-size:13px">${DAYS_LONG[sl.day]} ${sl.from}–${sl.to}${sl.coach?" · "+esc(sl.coach):""}</p>
+    <div class="field"><label>Posadit jezdce (řazeno dle vhodnosti)</label>
+      <div class="qpicks">
+        <button type="button" class="qpick${!bk.rider?" on":""}" data-r="">— nechat volného —</button>
+        ${btns}
+      </div>
+    </div>
+    <label style="display:flex;gap:7px;align-items:center;font-size:13px;margin-top:6px;cursor:pointer">
+      <input type="checkbox" id="f_reg" ${bk.regular?"checked":""}> 📌 pravidelně (opakovat každý týden, přežije „Nový týden")</label>
+  `,{
+    onSave(){ bk.regular=document.getElementById("f_reg").checked; save(); renderSched(); renderRiders(); },
+    onDelete:()=>{ S.assignments=S.assignments.filter(x=>x!==bk); save(); renderSched(); renderHorses(); renderRiders(); },
+    deleteLabel:"Odebrat koně z lekce"
+  });
+  document.querySelectorAll(".qpick").forEach(b=>b.onclick=()=>{
+    bk.rider=b.dataset.r||null;
+    bk.regular=document.getElementById("f_reg").checked;
+    save(); closeModal(); renderSched(); renderHorses(); renderRiders();
+  });
+}
+
+/* ---------- pool ---------- */
+function riderChip(r){
+  const c=document.createElement("div"); c.className="chip rider"; c.draggable=true;
+  c.textContent=r.name.split(" ")[0]+" "+((r.name.split(" ")[1]||"")[0]||"")+".";
+  const wl=(r.want||[]).map(sid=>byId(S.slots,sid)).filter(Boolean).sort((a,b)=>a.day-b.day||toMin(a.from)-toMin(b.from));
+  c.title=r.name+" — "+LEVELS[r.level]+(wl.length?"\nchce: "+wl.map(s=>DAYS[s.day]+" "+s.from).join(", "):"");
+  c.ondragstart=()=>{dragKind="rider";dragId=r.id;markTargets();}; c.ondragend=()=>{dragKind=null;dragId=null;clearTargets();};
+  return c;
+}
+function renderPools(){
+  const ph=document.getElementById("poolHorses"),pr=document.getElementById("poolRiders"),pp=document.getElementById("poolPairs"),pu=document.getElementById("poolUnplaced");
+  if(!ph)return; ph.innerHTML=""; pr.innerHTML=""; pp.innerHTML=""; pu.innerHTML="";
+  const sorted=S.riders.slice().sort((a,b)=>a.name.localeCompare(b.name,"cs"));
+  sorted.forEach(r=>{
+    (r.pref||[]).forEach(hid=>{ const h=horse(hid); if(!h)return;
+      const c=document.createElement("div"); c.className="chip pair"; c.draggable=true;
+      c.textContent=r.name.split(" ")[0]+" + "+h.name;
+      c.title=`${r.name} (${LEVELS[r.level]}) + ${h.name}`;
+      c.ondragstart=()=>{dragKind="pair";dragPair={rider:r.id,horse:hid};markTargets();};
+      c.ondragend=()=>{dragKind=null;dragPair=null;clearTargets();};
+      pp.appendChild(c);
+    });
+  });
+  S.horses.slice().sort((a,b)=>a.name.localeCompare(b.name,"cs")).forEach(h=>{
+    const w=horseWeek(h.id);
+    const c=document.createElement("div"); c.className="chip"; c.draggable=true;
+    c.textContent=h.name+(h.pony?" ·p":"");
+    c.title=`${h.name} — ${w.lessons}/${h.maxWeek} lekcí, ${w.hours}/${h.maxHours} h`;
+    c.ondragstart=()=>{dragKind="horse";dragId=h.id;markTargets();}; c.ondragend=()=>{dragKind=null;dragId=null;clearTargets();};
+    ph.appendChild(c);
+  });
+  const unplaced=sorted.filter(r=>!riderPlaced(r.id));
+  document.getElementById("unplacedH").textContent=`Nezařazení jezdci${unplaced.length?" ("+unplaced.length+")":""}`;
+  unplaced.forEach(r=>pu.appendChild(riderChip(r)));
+  sorted.forEach(r=>{ const c=riderChip(r); if(riderPlaced(r.id)) c.classList.add("placed"); pr.appendChild(c); });
+}
+
+/* ---------- slot editor ---------- */
+function editSlot(id){ editSlotObj(byId(S.slots,id)); }
+function editSlotObj(sl){
+  openModal(`
+    <h3>${sl.id?"Upravit lekci":"Nová lekce"}</h3>
+    <div class="field row2">
+      <div><label>Den</label><select id="f_day">${DAYS_LONG.map((d,i)=>`<option value="${i}" ${sl.day===i?"selected":""}>${d}</option>`).join("")}</select></div>
+      <div><label>Od</label><input type="time" id="f_from" value="${sl.from}"></div>
+      <div><label>Do</label><input type="time" id="f_to" value="${sl.to}"></div>
+    </div>
+    <div class="field"><label>Typ lekce</label><select id="f_type">${Object.entries(TYPES).map(([k,t])=>`<option value="${k}" ${sl.type===k?"selected":""}>${t.name}</option>`).join("")}</select></div>
+    <div class="field row2">
+      <div><label>Trenér</label><input type="text" id="f_coach" value="${esc(sl.coach||"")}"></div>
+      <div><label>Místo</label><input type="text" id="f_place" value="${esc(sl.place||"")}"></div>
+      <div><label>Kapacita koní</label><input type="number" id="f_cap" value="${sl.cap}" min="1"></div>
+    </div>
+  `,{
+    onSave(){
+      const o={day:+document.getElementById("f_day").value,from:document.getElementById("f_from").value,to:document.getElementById("f_to").value,
+        type:document.getElementById("f_type").value,coach:document.getElementById("f_coach").value.trim(),place:document.getElementById("f_place").value.trim(),
+        cap:+document.getElementById("f_cap").value};
+      if(o.to<=o.from) return alert("Čas „do“ musí být po „od“");
+      if(sl.id) Object.assign(byId(S.slots,sl.id),o); else S.slots.push({id:uid("s"),...o});
+      save(); renderSched();
+    },
+    onDelete:sl.id?()=>{ if(!confirm("Smazat lekci a její nasazení?"))return; S.slots=S.slots.filter(x=>x.id!==sl.id); S.assignments=S.assignments.filter(a=>a.slot!==sl.id); save(); renderSched(); }:null
+  });
+}
+
+/* ---------- modal ---------- */
+function openModal(html,{onSave,onDelete,deleteLabel}={}){
+  const box=document.getElementById("modalBox");
+  box.innerHTML=html+`<div class="modal-actions">
+    <div>${onDelete?`<button class="link-danger" id="m_del">${deleteLabel||"Smazat"}</button>`:''}</div>
+    <div class="right"><button class="btn ghost" id="m_cancel">Zrušit</button>${onSave?'<button class="btn" id="m_save">Uložit</button>':''}</div>
+  </div>`;
+  document.getElementById("modalBg").classList.add("open");
+  document.getElementById("m_cancel").onclick=closeModal;
+  if(onSave) document.getElementById("m_save").onclick=()=>{ onSave(); closeModal(); };
+  if(onDelete) document.getElementById("m_del").onclick=()=>{ onDelete(); closeModal(); };
+}
+function closeModal(){ document.getElementById("modalBg").classList.remove("open"); }
+document.getElementById("modalBg").onclick=e=>{ if(e.target.id==="modalBg") closeModal(); };
+document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeModal(); });
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+document.getElementById("showEmpty").onchange=renderSched;
+document.getElementById("newWeek").onclick=()=>{
+  const n=S.assignments.filter(a=>a.rider&&!a.regular).length;
+  if(!n) return alert("Žádná jednorázová přiřazení k uvolnění. (Pravidelná se označují 📌.)");
+  if(!confirm(`Uvolnit ${n} jednorázově přiřazených jezdců? Pravidelné (📌) a nominace koní zůstanou.`)) return;
+  S.assignments.forEach(a=>{ if(a.rider&&!a.regular) a.rider=null; });
+  save(); renderAll();
+};
+document.getElementById("resetBtn").onclick=()=>{ if(!confirm("Obnovit výchozí rozpis? Smaže všechny jezdce i přiřazení a vrátí prázdný týden (koně a lekce zůstanou)."))return; S=demoData(); save(); renderAll(); };
+function renderAll(){ renderSched(); renderHorses(); renderRiders(); }
+renderAll();
+</script>
+</body>
+</html>
