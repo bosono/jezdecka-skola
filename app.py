@@ -1,11 +1,12 @@
 import hmac
 import os
-from datetime import timedelta
+from datetime import date, timedelta
 from functools import wraps
 
 from flask import Flask, abort, jsonify, request, send_file, session
 
 import db
+import supersaas
 
 
 def login_required(f):
@@ -70,6 +71,35 @@ def create_app():
     @app.get("/")
     def index():
         return send_file("index.html")
+
+    @app.get("/api/supersaas/status")
+    @login_required
+    def supersaas_status():
+        return jsonify({
+            "configured": supersaas.is_configured(),
+            "schedule_id": os.environ.get("SUPERSAAS_SCHEDULE_ID"),
+            "slot_minutes": supersaas.slot_minutes_from_env(),
+        })
+
+    @app.post("/api/supersaas/push")
+    @login_required
+    def supersaas_push():
+        body = request.get_json(silent=True) or {}
+        try:
+            week_start = date.fromisoformat(str(body.get("week_start", "")))
+        except ValueError:
+            abort(400)
+        days = body.get("days")
+        dry_run = bool(body.get("dry_run"))
+        state = db.get_state().get("data") or {"horses": [], "riders": [], "slots": [], "assignments": []}
+        minutes = supersaas.slot_minutes_from_env()
+        bookings = supersaas.week_bookings(state, week_start, days=days, slot_minutes=minutes)
+        if dry_run or not supersaas.is_configured():
+            return jsonify({"configured": supersaas.is_configured(), "dry_run": True,
+                            "count": len(bookings), "bookings": bookings})
+        from_dt, to_dt = supersaas.week_range(week_start, days)
+        result = supersaas.client_from_env().replace(bookings, from_dt, to_dt)
+        return jsonify({"configured": True, "dry_run": False, "count": len(bookings), **result})
 
     return app
 
